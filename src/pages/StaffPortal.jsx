@@ -5,7 +5,8 @@ import {
   User, Lock, LogOut, Users, Calendar, AlertCircle, Plus,
   Search, Edit, Trash2, CheckCircle, XCircle, Stethoscope,
   Settings, Phone, CreditCard, Activity, Clock, ShieldCheck,
-  Eye, EyeOff, Sparkles, Home
+  Eye, EyeOff, Sparkles, Home, FileText, Pill, DollarSign,
+  TrendingUp, BarChart3, X, Save, Award
 } from 'lucide-react'
 
 export default function StaffPortal() {
@@ -16,28 +17,22 @@ export default function StaffPortal() {
   const [view, setView] = useState('login')
   const [user, setUser] = useState(null)
 
-  useEffect(() => {
-    loadClinic()
-  }, [clinicSlug])
+  useEffect(() => { loadClinic() }, [clinicSlug])
 
   const loadClinic = async () => {
     setClinicLoading(true)
     const { data, error } = await supabase
       .from('clinics').select('*')
-      .eq('slug', clinicSlug).eq('is_active', true)
-      .maybeSingle()
+      .eq('slug', clinicSlug).eq('is_active', true).maybeSingle()
 
-    if (error || !data) {
-      setClinicError(true)
-    } else {
+    if (error || !data) { setClinicError(true) }
+    else {
       setClinic(data)
-      // استرجاع الجلسة
       const saved = localStorage.getItem(`staff_session_${data.id}`)
       if (saved) {
         try {
           const s = JSON.parse(saved)
-          setUser(s.user)
-          setView(s.view)
+          setUser(s.user); setView(s.view)
         } catch (e) {}
       }
     }
@@ -46,14 +41,12 @@ export default function StaffPortal() {
 
   const handleLogout = () => {
     if (clinic) localStorage.removeItem(`staff_session_${clinic.id}`)
-    setUser(null)
-    setView('login')
+    setUser(null); setView('login')
   }
 
   const handleLoginSuccess = (user, viewType) => {
     if (clinic) localStorage.setItem(`staff_session_${clinic.id}`, JSON.stringify({ user, view: viewType }))
-    setUser(user)
-    setView(viewType)
+    setUser(user); setView(viewType)
   }
 
   if (clinicLoading) {
@@ -73,7 +66,6 @@ export default function StaffPortal() {
         <div className="glass-dark rounded-3xl p-12 max-w-md w-full text-center shadow-2xl">
           <div className="text-7xl mb-4">😕</div>
           <h2 className="text-2xl font-black text-white mb-2">العيادة غير موجودة</h2>
-          <p className="text-white/70 mb-6">الرابط غير صحيح</p>
           <Link to="/" className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-2xl font-bold shadow-xl btn-glow">
             <Home className="w-5 h-5" /> الرئيسية
           </Link>
@@ -101,7 +93,7 @@ export default function StaffPortal() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 🔐 تسجيل دخول الموظفين
+// 🔐 Login
 // ═══════════════════════════════════════════════════════════
 function StaffLogin({ clinic, onSuccess }) {
   const [userType, setUserType] = useState('admin')
@@ -111,10 +103,7 @@ function StaffLogin({ clinic, onSuccess }) {
   const [showPassword, setShowPassword] = useState(false)
 
   const handleLogin = async (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-
+    e.preventDefault(); setError(''); setLoading(true)
     try {
       if (userType === 'admin') {
         const { data, error: err } = await supabase
@@ -122,36 +111,22 @@ function StaffLogin({ clinic, onSuccess }) {
           .eq('clinic_id', clinic.id)
           .eq('username', credentials.username.trim())
           .eq('password', credentials.password)
-          .in('role', ['clinic_admin', 'super_admin'])
-          .limit(1)
-
-        if (err) { console.error(err); setError('❌ خطأ في الاتصال'); setLoading(false); return }
-        if (data && data.length > 0) {
-          onSuccess(data[0], 'admin')
-        } else {
-          setError('❌ بيانات الدخول غير صحيحة')
-        }
+          .in('role', ['clinic_admin', 'super_admin']).limit(1)
+        if (err) { setError('❌ خطأ في الاتصال'); return }
+        if (data && data.length > 0) onSuccess(data[0], 'admin')
+        else setError('❌ بيانات الدخول غير صحيحة')
       } else {
         const { data, error: err } = await supabase
           .from('doctors').select('*')
           .eq('clinic_id', clinic.id)
           .eq('username', credentials.username.trim())
-          .eq('password', credentials.password)
-          .limit(1)
-
-        if (err) { console.error(err); setError('❌ خطأ في الاتصال'); setLoading(false); return }
-        if (data && data.length > 0) {
-          onSuccess(data[0], 'doctor')
-        } else {
-          setError('❌ بيانات الدخول غير صحيحة')
-        }
+          .eq('password', credentials.password).limit(1)
+        if (err) { setError('❌ خطأ في الاتصال'); return }
+        if (data && data.length > 0) onSuccess(data[0], 'doctor')
+        else setError('❌ بيانات الدخول غير صحيحة')
       }
-    } catch (err) {
-      console.error(err)
-      setError('❌ حصل خطأ، حاول مرة أخرى')
-    } finally {
-      setLoading(false)
-    }
+    } catch (err) { setError('❌ حصل خطأ') }
+    finally { setLoading(false) }
   }
 
   return (
@@ -190,7 +165,6 @@ function StaffLogin({ clinic, onSuccess }) {
                   className="w-full pr-12 pl-4 py-4 bg-white/10 border-2 border-white/20 rounded-2xl text-white placeholder-white/40 text-right focus:border-purple-400 outline-none transition font-medium" />
               </div>
             </div>
-
             <div>
               <label className="block text-sm font-bold text-white/90 mb-2">كلمة المرور</label>
               <div className="relative">
@@ -204,13 +178,9 @@ function StaffLogin({ clinic, onSuccess }) {
                 </button>
               </div>
             </div>
-
             {error && (
-              <div className="bg-red-500/20 border-2 border-red-500/40 text-red-200 p-4 rounded-2xl text-sm font-medium animate-fade-in">
-                {error}
-              </div>
+              <div className="bg-red-500/20 border-2 border-red-500/40 text-red-200 p-4 rounded-2xl text-sm font-medium animate-fade-in">{error}</div>
             )}
-
             <button type="submit" disabled={loading}
               className={`w-full py-4 text-white font-bold rounded-2xl btn-glow disabled:opacity-50 shadow-xl text-lg ${userType === 'admin' ? 'bg-gradient-to-r from-purple-600 to-indigo-600' : 'bg-gradient-to-r from-green-600 to-emerald-600'}`}>
               {loading ? '⏳ جاري الدخول...' : '🚀 دخول'}
@@ -229,35 +199,52 @@ function StaffLogin({ clinic, onSuccess }) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// ⚙️ لوحة الأدمن
+// ⚙️ Admin Dashboard - مع تقارير ورسوم بيانية
 // ═══════════════════════════════════════════════════════════
 function AdminDashboard({ user, clinic, onLogout }) {
   const [tab, setTab] = useState('dashboard')
-  const [stats, setStats] = useState({ patients: 0, doctors: 0, todayAppts: 0, openComplaints: 0 })
+  const [stats, setStats] = useState({ patients: 0, doctors: 0, todayAppts: 0, openComplaints: 0, totalRevenue: 0, monthRevenue: 0 })
   const [patients, setPatients] = useState([])
   const [doctors, setDoctors] = useState([])
   const [appointments, setAppointments] = useState([])
   const [complaints, setComplaints] = useState([])
+  const [services, setServices] = useState([])
+  const [records, setRecords] = useState([])
 
   useEffect(() => { loadAll() }, [])
 
   const loadAll = async () => {
     const today = new Date().toISOString().split('T')[0]
-    const [p, d, a, c] = await Promise.all([
+    const startOfMonth = new Date()
+    startOfMonth.setDate(1)
+    const monthStart = startOfMonth.toISOString().split('T')[0]
+
+    const [p, d, a, c, s, r] = await Promise.all([
       supabase.from('patients').select('*').eq('clinic_id', clinic.id).order('created_at', { ascending: false }),
       supabase.from('doctors').select('*').eq('clinic_id', clinic.id).order('created_at', { ascending: false }),
       supabase.from('appointments').select('*, patients(*), doctors(*)').eq('clinic_id', clinic.id).order('appointment_date', { ascending: false }),
-      supabase.from('complaints').select('*, patients(*)').eq('clinic_id', clinic.id).order('created_at', { ascending: false })
+      supabase.from('complaints').select('*, patients(*)').eq('clinic_id', clinic.id).order('created_at', { ascending: false }),
+      supabase.from('clinic_services').select('*').eq('clinic_id', clinic.id).order('name'),
+      supabase.from('medical_records').select('*, patients(name), doctors(name)').eq('clinic_id', clinic.id).order('created_at', { ascending: false })
     ])
+
     setPatients(p.data || [])
     setDoctors(d.data || [])
     setAppointments(a.data || [])
     setComplaints(c.data || [])
+    setServices(s.data || [])
+    setRecords(r.data || [])
+
+    const totalRev = (r.data || []).reduce((sum, x) => sum + (parseFloat(x.paid_amount) || 0), 0)
+    const monthRev = (r.data || []).filter(x => x.created_at >= monthStart).reduce((sum, x) => sum + (parseFloat(x.paid_amount) || 0), 0)
+
     setStats({
       patients: p.data?.length || 0,
       doctors: d.data?.length || 0,
       todayAppts: a.data?.filter(x => x.appointment_date === today).length || 0,
-      openComplaints: c.data?.filter(x => x.status === 'open').length || 0
+      openComplaints: c.data?.filter(x => x.status === 'open').length || 0,
+      totalRevenue: totalRev,
+      monthRevenue: monthRev,
     })
   }
 
@@ -272,10 +259,10 @@ function AdminDashboard({ user, clinic, onLogout }) {
               </div>
               <div>
                 <h1 className="text-white font-black text-xl">{clinic?.name}</h1>
-                <p className="text-white/80 text-xs">⚙️ لوحة الإدارة • {user.full_name || user.username}</p>
+                <p className="text-white/80 text-xs">⚙️ {user.full_name || user.username}</p>
               </div>
             </div>
-            <button onClick={onLogout} className="bg-white/20 hover:bg-red-500/40 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition backdrop-blur-sm">
+            <button onClick={onLogout} className="bg-white/20 hover:bg-red-500/40 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition">
               <LogOut className="w-4 h-4" />
               <span className="hidden sm:inline text-sm font-bold">خروج</span>
             </button>
@@ -284,9 +271,11 @@ function AdminDashboard({ user, clinic, onLogout }) {
           <div className="flex gap-2 mt-5 overflow-x-auto pb-1">
             {[
               { id: 'dashboard', label: 'الرئيسية', icon: '📊' },
+              { id: 'reports', label: 'التقارير', icon: '📈' },
               { id: 'patients', label: 'المرضى', icon: '👥' },
               { id: 'doctors', label: 'الأطباء', icon: '👨‍⚕️' },
               { id: 'appointments', label: 'المواعيد', icon: '📅' },
+              { id: 'services', label: 'الخدمات', icon: '💼' },
               { id: 'complaints', label: 'الشكاوى', icon: '⚠️' },
             ].map(t => (
               <button key={t.id} onClick={() => setTab(t.id)}
@@ -300,9 +289,11 @@ function AdminDashboard({ user, clinic, onLogout }) {
 
       <div className="max-w-7xl mx-auto p-4 sm:p-6">
         {tab === 'dashboard' && <DashTab stats={stats} appointments={appointments} setTab={setTab} />}
+        {tab === 'reports' && <ReportsTab appointments={appointments} records={records} patients={patients} doctors={doctors} />}
         {tab === 'patients' && <PatientsTab patients={patients} clinic={clinic} onUpdate={loadAll} />}
         {tab === 'doctors' && <DoctorsTab doctors={doctors} clinic={clinic} onUpdate={loadAll} />}
         {tab === 'appointments' && <AppointmentsManageTab appointments={appointments} onUpdate={loadAll} />}
+        {tab === 'services' && <ServicesTab services={services} clinic={clinic} onUpdate={loadAll} />}
         {tab === 'complaints' && <ComplaintsManageTab complaints={complaints} onUpdate={loadAll} />}
       </div>
     </div>
@@ -315,11 +306,14 @@ function DashTab({ stats, appointments, setTab }) {
   return (
     <div className="space-y-6">
       <h2 className="text-3xl font-black text-gray-800">نظرة عامة 📊</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <BigStat icon="👥" label="إجمالي المرضى" value={stats.patients} gradient="from-blue-500 to-cyan-600" onClick={() => setTab('patients')} />
         <BigStat icon="👨‍⚕️" label="الأطباء" value={stats.doctors} gradient="from-green-500 to-emerald-600" onClick={() => setTab('doctors')} />
         <BigStat icon="📅" label="مواعيد اليوم" value={stats.todayAppts} gradient="from-purple-500 to-pink-600" onClick={() => setTab('appointments')} />
         <BigStat icon="⚠️" label="شكاوى مفتوحة" value={stats.openComplaints} gradient="from-orange-500 to-red-600" onClick={() => setTab('complaints')} />
+        <BigStat icon="💰" label="إيراد الشهر" value={`${stats.monthRevenue.toFixed(0)}`} gradient="from-yellow-500 to-orange-600" suffix="ر.س" onClick={() => setTab('reports')} />
+        <BigStat icon="💵" label="إجمالي الإيرادات" value={`${stats.totalRevenue.toFixed(0)}`} gradient="from-emerald-500 to-teal-600" suffix="ر.س" onClick={() => setTab('reports')} />
       </div>
 
       <div className="bg-white rounded-3xl p-6 shadow-xl">
@@ -341,21 +335,18 @@ function DashTab({ stats, appointments, setTab }) {
   )
 }
 
-function BigStat({ icon, label, value, gradient, onClick }) {
+function BigStat({ icon, label, value, gradient, onClick, suffix }) {
   return (
     <button onClick={onClick} className={`bg-gradient-to-br ${gradient} text-white rounded-3xl p-6 text-right shadow-xl card-hover`}>
       <div className="text-4xl mb-2">{icon}</div>
-      <p className="text-4xl font-black">{value}</p>
+      <p className="text-3xl font-black">{value}{suffix && <span className="text-sm mr-1 opacity-80">{suffix}</span>}</p>
       <p className="text-white/80 text-sm font-medium mt-1">{label}</p>
     </button>
   )
 }
 
 function AdminApptCard({ apt }) {
-  const colors = {
-    pending: 'bg-yellow-100 text-yellow-700', confirmed: 'bg-green-100 text-green-700',
-    completed: 'bg-blue-100 text-blue-700', cancelled: 'bg-red-100 text-red-700',
-  }
+  const colors = { pending: 'bg-yellow-100 text-yellow-700', confirmed: 'bg-green-100 text-green-700', completed: 'bg-blue-100 text-blue-700', cancelled: 'bg-red-100 text-red-700' }
   return (
     <div className="border-2 border-gray-100 rounded-2xl p-4 hover:border-indigo-200 hover:shadow-md transition">
       <div className="flex items-start justify-between">
@@ -375,36 +366,220 @@ function AdminApptCard({ apt }) {
   )
 }
 
+// ─── Reports Tab (تقارير ورسوم بيانية) ──────────────────────
+function ReportsTab({ appointments, records, patients, doctors }) {
+  // إحصائيات المواعيد حسب النوع
+  const apptByType = {
+    first_visit: appointments.filter(a => a.type === 'first_visit').length,
+    follow_up: appointments.filter(a => a.type === 'follow_up').length,
+    emergency: appointments.filter(a => a.type === 'emergency').length,
+    consultation: appointments.filter(a => a.type === 'consultation').length,
+  }
+  const totalAppt = appointments.length || 1
+
+  // إحصائيات المواعيد حسب الحالة
+  const apptByStatus = {
+    pending: appointments.filter(a => a.status === 'pending').length,
+    confirmed: appointments.filter(a => a.status === 'confirmed').length,
+    completed: appointments.filter(a => a.status === 'completed').length,
+    cancelled: appointments.filter(a => a.status === 'cancelled').length,
+  }
+
+  // إيرادات حسب الشهر (آخر 6 شهور)
+  const monthlyRevenue = {}
+  records.forEach(r => {
+    const month = r.created_at?.substring(0, 7)
+    if (month) monthlyRevenue[month] = (monthlyRevenue[month] || 0) + (parseFloat(r.paid_amount) || 0)
+  })
+  const sortedMonths = Object.keys(monthlyRevenue).sort().slice(-6)
+  const maxRevenue = Math.max(...Object.values(monthlyRevenue), 1)
+
+  // إحصائيات الأطباء
+  const doctorStats = doctors.map(d => ({
+    name: d.name,
+    appointments: appointments.filter(a => a.doctor_id === d.id).length,
+    revenue: records.filter(r => r.doctor_id === d.id).reduce((sum, r) => sum + (parseFloat(r.paid_amount) || 0), 0)
+  })).sort((a, b) => b.appointments - a.appointments)
+
+  const exportCSV = () => {
+    const rows = [['الاسم', 'الجوال', 'تاريخ التسجيل']]
+    patients.forEach(p => {
+      rows.push([p.name, p.phone, new Date(p.created_at).toLocaleDateString('ar-EG')])
+    })
+    const csv = rows.map(r => r.join(',')).join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `patients-${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h2 className="text-3xl font-black text-gray-800">📈 التقارير والإحصائيات</h2>
+        <button onClick={exportCSV}
+          className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-5 py-3 rounded-2xl font-bold shadow-xl btn-glow flex items-center gap-2">
+          📥 تصدير قائمة المرضى (CSV)
+        </button>
+      </div>
+
+      {/* المواعيد حسب النوع */}
+      <div className="bg-white rounded-3xl p-6 shadow-xl">
+        <h3 className="text-xl font-bold text-gray-800 mb-4">📊 المواعيد حسب النوع</h3>
+        <div className="space-y-3">
+          {[
+            { key: 'first_visit', label: '🆕 كشف أول', color: 'from-red-500 to-pink-600' },
+            { key: 'follow_up', label: '🔄 متابعة', color: 'from-green-500 to-emerald-600' },
+            { key: 'emergency', label: '🚨 طوارئ', color: 'from-orange-500 to-red-600' },
+            { key: 'consultation', label: '💬 استشارة', color: 'from-blue-500 to-indigo-600' },
+          ].map(t => (
+            <div key={t.key}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-bold text-gray-700">{t.label}</span>
+                <span className="text-sm font-bold text-gray-600">{apptByType[t.key]}</span>
+              </div>
+              <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                <div className={`h-full bg-gradient-to-r ${t.color} transition-all duration-700`}
+                  style={{width: `${(apptByType[t.key] / totalAppt) * 100}%`}}></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* المواعيد حسب الحالة */}
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-3xl p-6 shadow-xl">
+          <h3 className="text-xl font-bold text-gray-800 mb-4">📅 المواعيد حسب الحالة</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <StatusCircle label="قيد التأكيد" value={apptByStatus.pending} color="yellow" icon="⏳" />
+            <StatusCircle label="مؤكد" value={apptByStatus.confirmed} color="green" icon="✅" />
+            <StatusCircle label="مكتمل" value={apptByStatus.completed} color="blue" icon="✔️" />
+            <StatusCircle label="ملغي" value={apptByStatus.cancelled} color="red" icon="❌" />
+          </div>
+        </div>
+
+        {/* إيرادات الشهور */}
+        <div className="bg-white rounded-3xl p-6 shadow-xl">
+          <h3 className="text-xl font-bold text-gray-800 mb-4">💰 إيرادات آخر 6 شهور</h3>
+          {sortedMonths.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <div className="text-4xl mb-2">💸</div>
+              <p>لا توجد إيرادات بعد</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {sortedMonths.map(month => (
+                <div key={month}>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm font-bold text-gray-700">{month}</span>
+                    <span className="text-sm font-bold text-green-600">{monthlyRevenue[month].toFixed(0)} ر.س</span>
+                  </div>
+                  <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-green-500 to-emerald-600 transition-all duration-700"
+                      style={{width: `${(monthlyRevenue[month] / maxRevenue) * 100}%`}}></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* أداء الأطباء */}
+      <div className="bg-white rounded-3xl p-6 shadow-xl">
+        <h3 className="text-xl font-bold text-gray-800 mb-4">👨‍⚕️ أداء الأطباء</h3>
+        {doctorStats.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <div className="text-4xl mb-2">👨‍⚕️</div>
+            <p>لا يوجد أطباء</p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-4">
+            {doctorStats.map((d, i) => (
+              <div key={i} className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-4 border-2 border-green-100">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center text-2xl">👨‍⚕️</div>
+                  <p className="font-bold text-gray-800">{d.name}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-white rounded-xl p-3 text-center">
+                    <p className="text-2xl font-black text-green-600">{d.appointments}</p>
+                    <p className="text-xs text-gray-600">مواعيد</p>
+                  </div>
+                  <div className="bg-white rounded-xl p-3 text-center">
+                    <p className="text-2xl font-black text-orange-600">{d.revenue.toFixed(0)}</p>
+                    <p className="text-xs text-gray-600">إيراد (ر.س)</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function StatusCircle({ label, value, color, icon }) {
+  const colors = {
+    yellow: 'from-yellow-400 to-orange-500',
+    green: 'from-green-400 to-emerald-500',
+    blue: 'from-blue-400 to-indigo-500',
+    red: 'from-red-400 to-pink-500',
+  }
+  return (
+    <div className={`bg-gradient-to-br ${colors[color]} rounded-2xl p-4 text-white text-center`}>
+      <div className="text-3xl mb-1">{icon}</div>
+      <p className="text-3xl font-black">{value}</p>
+      <p className="text-xs font-medium opacity-90">{label}</p>
+    </div>
+  )
+}
+
+// ─── Patients Tab ──────────────────────
 function PatientsTab({ patients, clinic, onUpdate }) {
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const [editing, setEditing] = useState(null)
   const [form, setForm] = useState({ name: '', phone: '', national_id: '', gender: 'male', password: '123456' })
 
   const filtered = patients.filter(p =>
     p.name?.toLowerCase().includes(search.toLowerCase()) ||
-    p.phone?.includes(search) ||
-    p.national_id?.includes(search)
+    p.phone?.includes(search) || p.national_id?.includes(search)
   )
 
-  const addPatient = async (e) => {
-    e.preventDefault()
-    const { error } = await supabase.from('patients').insert([{ ...form, clinic_id: clinic.id }])
-    if (error) { alert('❌ ' + error.message); return }
-    setForm({ name: '', phone: '', national_id: '', gender: 'male', password: '123456' })
-    setShowForm(false); onUpdate()
+  const startEdit = (p) => {
+    setEditing(p)
+    setForm({ name: p.name, phone: p.phone, national_id: p.national_id || '', gender: p.gender || 'male', password: p.password })
+    setShowForm(true)
   }
 
-  const deletePatient = async (id) => {
-    if (!confirm('هل تريد حذف هذا المريض؟')) return
-    await supabase.from('patients').delete().eq('id', id)
-    onUpdate()
+  const submit = async (e) => {
+    e.preventDefault()
+    if (editing) {
+      const { error } = await supabase.from('patients').update(form).eq('id', editing.id)
+      if (error) { alert('❌ ' + error.message); return }
+    } else {
+      const { error } = await supabase.from('patients').insert([{ ...form, clinic_id: clinic.id }])
+      if (error) { alert('❌ ' + error.message); return }
+    }
+    setForm({ name: '', phone: '', national_id: '', gender: 'male', password: '123456' })
+    setShowForm(false); setEditing(null); onUpdate()
+  }
+
+  const del = async (id) => {
+    if (!confirm('حذف المريض؟')) return
+    await supabase.from('patients').delete().eq('id', id); onUpdate()
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
         <h2 className="text-3xl font-black text-gray-800">👥 إدارة المرضى</h2>
-        <button onClick={() => setShowForm(!showForm)}
+        <button onClick={() => { setShowForm(!showForm); setEditing(null); setForm({ name: '', phone: '', national_id: '', gender: 'male', password: '123456' }) }}
           className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-3 rounded-2xl font-bold shadow-xl btn-glow flex items-center gap-2">
           <Plus className="w-5 h-5" /> {showForm ? 'إلغاء' : 'مريض جديد'}
         </button>
@@ -412,7 +587,8 @@ function PatientsTab({ patients, clinic, onUpdate }) {
 
       {showForm && (
         <div className="bg-white rounded-3xl p-6 shadow-xl animate-slide-up">
-          <form onSubmit={addPatient} className="grid md:grid-cols-2 gap-4">
+          <h3 className="text-xl font-bold mb-4">{editing ? '✏️ تعديل المريض' : '➕ مريض جديد'}</h3>
+          <form onSubmit={submit} className="grid md:grid-cols-2 gap-4">
             <input required placeholder="الاسم *" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})}
               className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 outline-none" />
             <input required placeholder="رقم الجوال *" value={form.phone} onChange={(e) => setForm({...form, phone: e.target.value})}
@@ -421,13 +597,12 @@ function PatientsTab({ patients, clinic, onUpdate }) {
               className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 outline-none" />
             <select value={form.gender} onChange={(e) => setForm({...form, gender: e.target.value})}
               className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 outline-none">
-              <option value="male">ذكر</option>
-              <option value="female">أنثى</option>
+              <option value="male">ذكر</option><option value="female">أنثى</option>
             </select>
-            <input placeholder="كلمة المرور (افتراضي: 123456)" value={form.password} onChange={(e) => setForm({...form, password: e.target.value})}
+            <input placeholder="كلمة المرور" value={form.password} onChange={(e) => setForm({...form, password: e.target.value})}
               className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 outline-none md:col-span-2" />
             <button type="submit" className="md:col-span-2 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold shadow-lg">
-              ✅ حفظ المريض
+              {editing ? '💾 حفظ التعديلات' : '✅ حفظ المريض'}
             </button>
           </form>
         </div>
@@ -436,7 +611,7 @@ function PatientsTab({ patients, clinic, onUpdate }) {
       <div className="bg-white rounded-3xl p-6 shadow-xl">
         <div className="relative mb-4">
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input placeholder="🔍 بحث بالاسم أو الجوال أو رقم الهوية..." value={search} onChange={(e) => setSearch(e.target.value)}
+          <input placeholder="🔍 بحث..." value={search} onChange={(e) => setSearch(e.target.value)}
             className="w-full pr-12 pl-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-indigo-500 outline-none" />
         </div>
 
@@ -449,7 +624,7 @@ function PatientsTab({ patients, clinic, onUpdate }) {
           <div className="space-y-3">
             {filtered.map(p => (
               <div key={p.id} className="border-2 border-gray-100 rounded-2xl p-4 hover:border-indigo-200 hover:shadow-md transition">
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">
                       {p.name?.charAt(0)}
@@ -460,9 +635,14 @@ function PatientsTab({ patients, clinic, onUpdate }) {
                       {p.national_id && <p className="text-xs text-gray-500">🆔 {p.national_id}</p>}
                     </div>
                   </div>
-                  <button onClick={() => deletePatient(p.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg">
-                    <Trash2 className="w-5 h-5" />
-                  </button>
+                  <div className="flex gap-2">
+                    <button onClick={() => startEdit(p)} className="text-blue-500 hover:bg-blue-50 p-2 rounded-lg">
+                      <Edit className="w-5 h-5" />
+                    </button>
+                    <button onClick={() => del(p.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg">
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -473,6 +653,7 @@ function PatientsTab({ patients, clinic, onUpdate }) {
   )
 }
 
+// ─── Doctors Tab ──────────────────────
 function DoctorsTab({ doctors, clinic, onUpdate }) {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ name: '', specialization: '', phone: '', username: '', password: '123456' })
@@ -486,9 +667,8 @@ function DoctorsTab({ doctors, clinic, onUpdate }) {
   }
 
   const del = async (id) => {
-    if (!confirm('هل تريد حذف الطبيب؟')) return
-    await supabase.from('doctors').delete().eq('id', id)
-    onUpdate()
+    if (!confirm('حذف الطبيب؟')) return
+    await supabase.from('doctors').delete().eq('id', id); onUpdate()
   }
 
   return (
@@ -510,7 +690,7 @@ function DoctorsTab({ doctors, clinic, onUpdate }) {
               className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 outline-none" />
             <input placeholder="رقم الجوال" value={form.phone} onChange={(e) => setForm({...form, phone: e.target.value})}
               className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 outline-none" />
-            <input required placeholder="اسم المستخدم (للدخول) *" value={form.username} onChange={(e) => setForm({...form, username: e.target.value})}
+            <input required placeholder="اسم المستخدم *" value={form.username} onChange={(e) => setForm({...form, username: e.target.value})}
               className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 outline-none" />
             <input placeholder="كلمة المرور" value={form.password} onChange={(e) => setForm({...form, password: e.target.value})}
               className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 outline-none md:col-span-2" />
@@ -525,7 +705,7 @@ function DoctorsTab({ doctors, clinic, onUpdate }) {
         {doctors.length === 0 ? (
           <div className="md:col-span-2 bg-white rounded-3xl p-12 text-center text-gray-500 shadow-xl">
             <div className="text-5xl mb-2">👨‍⚕️</div>
-            <p>لا يوجد أطباء مسجلين</p>
+            <p>لا يوجد أطباء</p>
           </div>
         ) : doctors.map(d => (
           <div key={d.id} className="bg-white rounded-2xl p-5 shadow-lg card-hover">
@@ -536,6 +716,7 @@ function DoctorsTab({ doctors, clinic, onUpdate }) {
                   <p className="font-bold text-gray-800 text-lg">{d.name}</p>
                   <p className="text-sm text-gray-600">{d.specialization}</p>
                   <p className="text-xs text-gray-500 mt-1">📞 {d.phone}</p>
+                  <p className="text-xs text-gray-500">👤 {d.username}</p>
                 </div>
               </div>
               <button onClick={() => del(d.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg">
@@ -549,15 +730,106 @@ function DoctorsTab({ doctors, clinic, onUpdate }) {
   )
 }
 
+// ─── Services Tab (جديد) ──────────────────────
+function ServicesTab({ services, clinic, onUpdate }) {
+  const [showForm, setShowForm] = useState(false)
+  const [editing, setEditing] = useState(null)
+  const [form, setForm] = useState({ name: '', description: '', price: 0, duration_minutes: 30 })
+
+  const startEdit = (s) => {
+    setEditing(s)
+    setForm({ name: s.name, description: s.description || '', price: s.price, duration_minutes: s.duration_minutes })
+    setShowForm(true)
+  }
+
+  const submit = async (e) => {
+    e.preventDefault()
+    if (editing) {
+      const { error } = await supabase.from('clinic_services').update(form).eq('id', editing.id)
+      if (error) { alert('❌ ' + error.message); return }
+    } else {
+      const { error } = await supabase.from('clinic_services').insert([{ ...form, clinic_id: clinic.id }])
+      if (error) { alert('❌ ' + error.message); return }
+    }
+    setForm({ name: '', description: '', price: 0, duration_minutes: 30 })
+    setShowForm(false); setEditing(null); onUpdate()
+  }
+
+  const del = async (id) => {
+    if (!confirm('حذف الخدمة؟')) return
+    await supabase.from('clinic_services').delete().eq('id', id); onUpdate()
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+        <h2 className="text-3xl font-black text-gray-800">💼 إدارة الخدمات والأسعار</h2>
+        <button onClick={() => { setShowForm(!showForm); setEditing(null); setForm({ name: '', description: '', price: 0, duration_minutes: 30 }) }}
+          className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-5 py-3 rounded-2xl font-bold shadow-xl btn-glow flex items-center gap-2">
+          <Plus className="w-5 h-5" /> {showForm ? 'إلغاء' : 'خدمة جديدة'}
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="bg-white rounded-3xl p-6 shadow-xl animate-slide-up">
+          <h3 className="text-xl font-bold mb-4">{editing ? '✏️ تعديل الخدمة' : '➕ خدمة جديدة'}</h3>
+          <form onSubmit={submit} className="grid md:grid-cols-2 gap-4">
+            <input required placeholder="اسم الخدمة *" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})}
+              className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-yellow-500 outline-none md:col-span-2" />
+            <input type="number" required placeholder="السعر *" value={form.price} onChange={(e) => setForm({...form, price: parseFloat(e.target.value) || 0})}
+              className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-yellow-500 outline-none" />
+            <input type="number" required placeholder="المدة (دقيقة)" value={form.duration_minutes} onChange={(e) => setForm({...form, duration_minutes: parseInt(e.target.value) || 30})}
+              className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-yellow-500 outline-none" />
+            <textarea placeholder="الوصف" value={form.description} onChange={(e) => setForm({...form, description: e.target.value})} rows="2"
+              className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-yellow-500 outline-none md:col-span-2 resize-none" />
+            <button type="submit" className="md:col-span-2 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-xl font-bold shadow-lg">
+              {editing ? '💾 حفظ' : '✅ إضافة'}
+            </button>
+          </form>
+        </div>
+      )}
+
+      <div className="grid md:grid-cols-2 gap-4">
+        {services.length === 0 ? (
+          <div className="md:col-span-2 bg-white rounded-3xl p-12 text-center text-gray-500 shadow-xl">
+            <div className="text-5xl mb-2">💼</div>
+            <p>لا توجد خدمات</p>
+          </div>
+        ) : services.map(s => (
+          <div key={s.id} className="bg-white rounded-2xl p-5 shadow-lg card-hover">
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex-1">
+                <h3 className="font-bold text-gray-800 text-lg">{s.name}</h3>
+                {s.description && <p className="text-sm text-gray-600 mt-1">{s.description}</p>}
+                <div className="flex items-center gap-4 mt-2 text-sm">
+                  <span className="text-2xl font-black text-yellow-600">{s.price} ر.س</span>
+                  <span className="text-gray-500 flex items-center gap-1"><Clock className="w-4 h-4" /> {s.duration_minutes} دقيقة</span>
+                </div>
+              </div>
+              <div className="flex gap-1">
+                <button onClick={() => startEdit(s)} className="text-blue-500 hover:bg-blue-50 p-2 rounded-lg">
+                  <Edit className="w-5 h-5" />
+                </button>
+                <button onClick={() => del(s.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg">
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Appointments Manage ──────────────────────
 function AppointmentsManageTab({ appointments, onUpdate }) {
   const updateStatus = async (id, status) => {
-    await supabase.from('appointments').update({ status }).eq('id', id)
-    onUpdate()
+    await supabase.from('appointments').update({ status }).eq('id', id); onUpdate()
   }
   const del = async (id) => {
     if (!confirm('حذف الموعد؟')) return
-    await supabase.from('appointments').delete().eq('id', id)
-    onUpdate()
+    await supabase.from('appointments').delete().eq('id', id); onUpdate()
   }
 
   return (
@@ -566,8 +838,7 @@ function AppointmentsManageTab({ appointments, onUpdate }) {
       <div className="bg-white rounded-3xl p-6 shadow-xl">
         {appointments.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
-            <div className="text-5xl mb-2">📅</div>
-            <p>لا توجد مواعيد</p>
+            <div className="text-5xl mb-2">📅</div><p>لا توجد مواعيد</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -602,14 +873,13 @@ function AppointmentsManageTab({ appointments, onUpdate }) {
   )
 }
 
+// ─── Complaints Manage ──────────────────────
 function ComplaintsManageTab({ complaints, onUpdate }) {
   const [editingId, setEditingId] = useState(null)
   const [response, setResponse] = useState('')
-
   const respond = async (id, status) => {
     await supabase.from('complaints').update({
-      response: response, status: status,
-      resolved_at: status === 'resolved' ? new Date().toISOString() : null
+      response, status, resolved_at: status === 'resolved' ? new Date().toISOString() : null
     }).eq('id', id)
     setEditingId(null); setResponse(''); onUpdate()
   }
@@ -620,8 +890,7 @@ function ComplaintsManageTab({ complaints, onUpdate }) {
       <div className="bg-white rounded-3xl p-6 shadow-xl">
         {complaints.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
-            <div className="text-5xl mb-2">✨</div>
-            <p>لا توجد شكاوى</p>
+            <div className="text-5xl mb-2">✨</div><p>لا توجد شكاوى</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -637,14 +906,12 @@ function ComplaintsManageTab({ complaints, onUpdate }) {
                   </span>
                 </div>
                 <p className="text-gray-700 mb-3">{c.description}</p>
-
                 {c.response && (
                   <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-3">
                     <p className="text-xs font-bold text-green-700 mb-1">الرد:</p>
                     <p className="text-sm text-green-800">{c.response}</p>
                   </div>
                 )}
-
                 {editingId === c.id ? (
                   <div className="space-y-2">
                     <textarea value={response} onChange={(e) => setResponse(e.target.value)} placeholder="اكتب الرد..." rows="3"
@@ -673,32 +940,33 @@ function ComplaintsManageTab({ complaints, onUpdate }) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 👨‍⚕️ لوحة الدكتور
+// 👨‍⚕️ Doctor Dashboard - مع أدوات متقدمة (تشخيص + وصفة + إكمال)
 // ═══════════════════════════════════════════════════════════
 function DoctorDashboard({ user, clinic, onLogout }) {
   const [appointments, setAppointments] = useState([])
+  const [services, setServices] = useState([])
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
   const [loading, setLoading] = useState(true)
+  const [examiningApt, setExaminingApt] = useState(null)
 
   useEffect(() => { load() }, [])
 
   const load = async () => {
     setLoading(true)
-    const { data } = await supabase
-      .from('appointments').select('*, patients(*)')
-      .eq('doctor_id', user.id)
-      .order('appointment_date', { ascending: false })
-      .order('appointment_time')
-    setAppointments(data || [])
+    const [a, s] = await Promise.all([
+      supabase.from('appointments').select('*, patients(*), medical_records(*)').eq('doctor_id', user.id).order('appointment_date', { ascending: false }).order('appointment_time'),
+      supabase.from('clinic_services').select('*').eq('clinic_id', clinic.id).eq('is_active', true)
+    ])
+    setAppointments(a.data || [])
+    setServices(s.data || [])
     setLoading(false)
   }
 
   const filtered = appointments.filter(apt => {
     const matchSearch = !search ||
       apt.patients?.name?.toLowerCase().includes(search.toLowerCase()) ||
-      apt.patients?.phone?.includes(search) ||
-      apt.patients?.national_id?.includes(search)
+      apt.patients?.phone?.includes(search) || apt.patients?.national_id?.includes(search)
     const matchFilter = filter === 'all' || apt.type === filter
     return matchSearch && matchFilter
   })
@@ -706,6 +974,11 @@ function DoctorDashboard({ user, clinic, onLogout }) {
   const firstVisits = appointments.filter(a => a.type === 'first_visit')
   const emergencies = appointments.filter(a => a.type === 'emergency')
   const followUps = appointments.filter(a => a.type === 'follow_up')
+
+  if (examiningApt) {
+    return <ExaminationView apt={examiningApt} clinic={clinic} services={services} doctor={user}
+      onClose={() => { setExaminingApt(null); load() }} />
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 page-enter" dir="rtl">
@@ -719,7 +992,7 @@ function DoctorDashboard({ user, clinic, onLogout }) {
                 <p className="text-white/80 text-xs">{user.specialization} • {clinic?.name}</p>
               </div>
             </div>
-            <button onClick={onLogout} className="bg-white/20 hover:bg-red-500/40 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition backdrop-blur-sm">
+            <button onClick={onLogout} className="bg-white/20 hover:bg-red-500/40 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition">
               <LogOut className="w-4 h-4" />
               <span className="hidden sm:inline text-sm font-bold">خروج</span>
             </button>
@@ -739,7 +1012,7 @@ function DoctorDashboard({ user, clinic, onLogout }) {
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input placeholder="🔍 بحث بالاسم أو الجوال أو رقم الهوية..." value={search} onChange={(e) => setSearch(e.target.value)}
+              <input placeholder="🔍 بحث بالاسم أو الجوال أو الهوية..." value={search} onChange={(e) => setSearch(e.target.value)}
                 className="w-full pr-12 pl-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-green-500 outline-none" />
             </div>
             <select value={filter} onChange={(e) => setFilter(e.target.value)}
@@ -756,14 +1029,9 @@ function DoctorDashboard({ user, clinic, onLogout }) {
         <div className="bg-white rounded-3xl p-6 shadow-xl">
           <h3 className="text-xl font-bold text-gray-800 mb-4">📋 قائمة المرضى ({filtered.length})</h3>
           {loading ? (
-            <div className="text-center py-12">
-              <div className="inline-block w-12 h-12 border-4 border-green-200 border-t-green-600 rounded-full animate-spin"></div>
-            </div>
+            <div className="text-center py-12"><div className="inline-block w-12 h-12 border-4 border-green-200 border-t-green-600 rounded-full animate-spin"></div></div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <div className="text-5xl mb-2">📭</div>
-              <p>لا يوجد مرضى</p>
-            </div>
+            <div className="text-center py-12 text-gray-500"><div className="text-5xl mb-2">📭</div><p>لا يوجد مرضى</p></div>
           ) : (
             <div className="space-y-3">
               {filtered.map(apt => (
@@ -776,8 +1044,10 @@ function DoctorDashboard({ user, clinic, onLogout }) {
                       <div>
                         <p className="font-bold text-gray-800 text-lg">{apt.patients?.name}</p>
                         <p className="text-sm text-gray-600">📞 {apt.patients?.phone}</p>
-                        {apt.patients?.national_id && <p className="text-xs text-gray-500">🆔 {apt.patients.national_id}</p>}
                         {apt.patients?.medical_notes && <p className="text-xs text-gray-600 mt-1">📋 {apt.patients.medical_notes}</p>}
+                        {apt.medical_records && apt.medical_records.length > 0 && (
+                          <p className="text-xs text-green-700 font-bold mt-1">✅ تم الكشف ({apt.medical_records.length} مرة)</p>
+                        )}
                       </div>
                     </div>
                     <div className="text-left">
@@ -788,10 +1058,274 @@ function DoctorDashboard({ user, clinic, onLogout }) {
                       </span>
                     </div>
                   </div>
+                  <div className="mt-3 pt-3 border-t border-gray-200 flex gap-2 flex-wrap">
+                    <button onClick={() => setExaminingApt(apt)}
+                      className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-lg btn-glow flex items-center gap-2">
+                      <Stethoscope className="w-4 h-4" />
+                      {apt.medical_records?.length > 0 ? '✏️ تعديل/إضافة كشف' : '🩺 بدء الكشف'}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🩺 شاشة الفحص - تشخيص + وصفة + فاتورة
+// ═══════════════════════════════════════════════════════════
+function ExaminationView({ apt, clinic, services, doctor, onClose }) {
+  const existingRecord = apt.medical_records?.[0]
+  const [form, setForm] = useState({
+    diagnosis: existingRecord?.diagnosis || '',
+    treatment: existingRecord?.treatment || '',
+    prescription: existingRecord?.prescription || '',
+    next_visit_notes: existingRecord?.next_visit_notes || '',
+    private_notes: existingRecord?.private_notes || '',
+    services_provided: existingRecord?.services_provided || [],
+    discount: existingRecord?.discount || 0,
+    paid_amount: existingRecord?.paid_amount || 0,
+    payment_method: existingRecord?.payment_method || 'cash',
+  })
+  const [loading, setLoading] = useState(false)
+
+  const total = form.services_provided.reduce((sum, s) => sum + (s.price * s.qty), 0)
+  const finalTotal = total - parseFloat(form.discount || 0)
+  const paymentStatus = parseFloat(form.paid_amount) >= finalTotal ? 'paid' : parseFloat(form.paid_amount) > 0 ? 'partial' : 'unpaid'
+
+  const addService = (s) => {
+    const existing = form.services_provided.find(x => x.id === s.id)
+    if (existing) {
+      setForm({...form, services_provided: form.services_provided.map(x => x.id === s.id ? {...x, qty: x.qty + 1} : x)})
+    } else {
+      setForm({...form, services_provided: [...form.services_provided, {id: s.id, name: s.name, price: s.price, qty: 1}]})
+    }
+  }
+
+  const removeService = (id) => {
+    setForm({...form, services_provided: form.services_provided.filter(s => s.id !== id)})
+  }
+
+  const updateQty = (id, qty) => {
+    if (qty < 1) return removeService(id)
+    setForm({...form, services_provided: form.services_provided.map(s => s.id === id ? {...s, qty} : s)})
+  }
+
+  const save = async (complete = false) => {
+    setLoading(true)
+    const recordData = {
+      clinic_id: clinic.id,
+      appointment_id: apt.id,
+      patient_id: apt.patient_id,
+      doctor_id: doctor.id,
+      diagnosis: form.diagnosis,
+      treatment: form.treatment,
+      prescription: form.prescription,
+      next_visit_notes: form.next_visit_notes,
+      private_notes: form.private_notes,
+      services_provided: form.services_provided,
+      total_amount: finalTotal,
+      discount: parseFloat(form.discount) || 0,
+      paid_amount: parseFloat(form.paid_amount) || 0,
+      payment_status: paymentStatus,
+      payment_method: form.payment_method,
+    }
+
+    if (existingRecord) {
+      await supabase.from('medical_records').update(recordData).eq('id', existingRecord.id)
+    } else {
+      await supabase.from('medical_records').insert([recordData])
+    }
+
+    if (complete) {
+      await supabase.from('appointments').update({ status: 'completed' }).eq('id', apt.id)
+    }
+
+    setLoading(false)
+    onClose()
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 page-enter" dir="rtl">
+      <header className="bg-gradient-to-r from-green-600 to-emerald-600 shadow-2xl sticky top-0 z-40">
+        <div className="max-w-5xl mx-auto px-4 py-5 flex items-center justify-between">
+          <div>
+            <h1 className="text-white font-black text-xl">🩺 شاشة الكشف</h1>
+            <p className="text-white/80 text-sm">{apt.patients?.name} • {apt.appointment_date}</p>
+          </div>
+          <button onClick={onClose} className="bg-white/20 hover:bg-white/30 text-white p-3 rounded-xl">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </header>
+
+      <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-5">
+        {/* بيانات المريض */}
+        <div className="bg-white rounded-3xl p-6 shadow-xl">
+          <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+            <User className="w-5 h-5 text-green-600" /> بيانات المريض
+          </h3>
+          <div className="grid sm:grid-cols-2 gap-3 text-sm">
+            <div><span className="text-gray-500">الاسم:</span> <strong>{apt.patients?.name}</strong></div>
+            <div><span className="text-gray-500">الجوال:</span> <strong>{apt.patients?.phone}</strong></div>
+            <div><span className="text-gray-500">العمر:</span> <strong>{apt.patients?.date_of_birth ? new Date().getFullYear() - new Date(apt.patients.date_of_birth).getFullYear() : '-'}</strong></div>
+            <div><span className="text-gray-500">فصيلة الدم:</span> <strong>{apt.patients?.blood_type || '-'}</strong></div>
+            {apt.patients?.allergies && (
+              <div className="sm:col-span-2 bg-red-50 border-2 border-red-200 rounded-xl p-3">
+                <span className="text-red-700 font-bold">⚠️ حساسيات:</span> {apt.patients.allergies}
+              </div>
+            )}
+            {apt.patients?.medical_notes && (
+              <div className="sm:col-span-2 bg-yellow-50 border-2 border-yellow-200 rounded-xl p-3">
+                <span className="text-yellow-700 font-bold">📋 ملاحظات طبية:</span> {apt.patients.medical_notes}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* التشخيص والعلاج */}
+        <div className="bg-white rounded-3xl p-6 shadow-xl">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-blue-600" /> التشخيص والعلاج
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1">🔍 التشخيص</label>
+              <textarea value={form.diagnosis} onChange={(e) => setForm({...form, diagnosis: e.target.value})}
+                rows="3" placeholder="مثال: التهاب في اللثة، تسوس في الضرس الأيمن السفلي..."
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 outline-none resize-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1">💉 العلاج المُقدّم</label>
+              <textarea value={form.treatment} onChange={(e) => setForm({...form, treatment: e.target.value})}
+                rows="3" placeholder="مثال: تنظيف اللثة، حشوة بيضاء للضرس..."
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 outline-none resize-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-1">
+                <Pill className="w-4 h-4 text-pink-600" /> الوصفة الطبية
+              </label>
+              <textarea value={form.prescription} onChange={(e) => setForm({...form, prescription: e.target.value})}
+                rows="3" placeholder="مثال: أوجمنتين 1g كل 12 ساعة لمدة 5 أيام، بروفين 400mg عند الألم..."
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 outline-none resize-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1">📅 ملاحظات للزيارة القادمة</label>
+              <textarea value={form.next_visit_notes} onChange={(e) => setForm({...form, next_visit_notes: e.target.value})}
+                rows="2" placeholder="مثال: متابعة بعد أسبوع لإكمال علاج الجذور..."
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 outline-none resize-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1">🔒 ملاحظات خاصة (للدكتور فقط)</label>
+              <textarea value={form.private_notes} onChange={(e) => setForm({...form, private_notes: e.target.value})}
+                rows="2" placeholder="ملاحظات لا يراها المريض..."
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 outline-none resize-none" />
+            </div>
+          </div>
+        </div>
+
+        {/* الفاتورة والخدمات */}
+        <div className="bg-white rounded-3xl p-6 shadow-xl">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-yellow-600" /> الفاتورة
+          </h3>
+
+          {services.length > 0 && (
+            <div className="mb-4">
+              <p className="text-sm font-bold text-gray-700 mb-2">➕ إضافة خدمات:</p>
+              <div className="flex flex-wrap gap-2">
+                {services.map(s => (
+                  <button key={s.id} onClick={() => addService(s)}
+                    className="bg-yellow-50 hover:bg-yellow-100 border-2 border-yellow-200 rounded-xl px-3 py-2 text-sm font-bold text-gray-700 transition">
+                    {s.name} <span className="text-yellow-700">({s.price} ر.س)</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {form.services_provided.length > 0 ? (
+            <div className="space-y-2 mb-4">
+              {form.services_provided.map(s => (
+                <div key={s.id} className="flex items-center justify-between bg-gray-50 rounded-xl p-3 gap-2">
+                  <span className="font-bold text-gray-800 flex-1">{s.name}</span>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => updateQty(s.id, s.qty - 1)} className="w-7 h-7 bg-red-100 text-red-600 rounded-lg font-bold">−</button>
+                    <span className="w-8 text-center font-bold">{s.qty}</span>
+                    <button onClick={() => updateQty(s.id, s.qty + 1)} className="w-7 h-7 bg-green-100 text-green-600 rounded-lg font-bold">+</button>
+                    <span className="font-bold text-yellow-700 min-w-[80px] text-left">{(s.price * s.qty).toFixed(0)} ر.س</span>
+                    <button onClick={() => removeService(s.id)} className="text-red-500 hover:bg-red-50 p-1 rounded">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-gray-500 text-sm bg-gray-50 rounded-xl mb-4">لا توجد خدمات مُضافة</div>
+          )}
+
+          <div className="grid sm:grid-cols-3 gap-3 mb-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-1">💰 الإجمالي</label>
+              <div className="px-3 py-2 bg-gray-100 rounded-xl font-bold text-lg">{total.toFixed(0)} ر.س</div>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-1">🎁 الخصم</label>
+              <input type="number" value={form.discount} onChange={(e) => setForm({...form, discount: e.target.value})}
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:border-yellow-500 outline-none font-bold" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-1">💵 المبلغ المدفوع</label>
+              <input type="number" value={form.paid_amount} onChange={(e) => setForm({...form, paid_amount: e.target.value})}
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:border-green-500 outline-none font-bold" />
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-2xl p-4">
+            <div className="grid sm:grid-cols-3 gap-2 text-center">
+              <div>
+                <p className="text-xs text-gray-600">الصافي</p>
+                <p className="text-2xl font-black text-orange-700">{finalTotal.toFixed(0)} ر.س</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-600">المتبقي</p>
+                <p className="text-2xl font-black text-red-600">{Math.max(0, finalTotal - parseFloat(form.paid_amount || 0)).toFixed(0)} ر.س</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-600">الحالة</p>
+                <p className={`text-lg font-black ${paymentStatus === 'paid' ? 'text-green-600' : paymentStatus === 'partial' ? 'text-yellow-600' : 'text-red-600'}`}>
+                  {paymentStatus === 'paid' ? '✅ مدفوع' : paymentStatus === 'partial' ? '🟡 جزئي' : '🔴 غير مدفوع'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-3">
+            <label className="block text-sm font-bold text-gray-700 mb-1">💳 طريقة الدفع</label>
+            <select value={form.payment_method} onChange={(e) => setForm({...form, payment_method: e.target.value})}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-yellow-500 outline-none">
+              <option value="cash">💵 نقدي</option>
+              <option value="card">💳 بطاقة</option>
+              <option value="transfer">🏦 تحويل بنكي</option>
+            </select>
+          </div>
+        </div>
+
+        {/* الأزرار */}
+        <div className="grid grid-cols-2 gap-3 sticky bottom-4">
+          <button onClick={() => save(false)} disabled={loading}
+            className="py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold rounded-2xl btn-glow disabled:opacity-50 shadow-2xl flex items-center justify-center gap-2">
+            <Save className="w-5 h-5" /> {loading ? '⏳' : 'حفظ كمسودة'}
+          </button>
+          <button onClick={() => save(true)} disabled={loading}
+            className="py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-2xl btn-glow disabled:opacity-50 shadow-2xl flex items-center justify-center gap-2">
+            <CheckCircle className="w-5 h-5" /> {loading ? '⏳' : 'إنهاء وحفظ ✓'}
+          </button>
         </div>
       </div>
     </div>
