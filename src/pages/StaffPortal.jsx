@@ -1,41 +1,85 @@
 import { useState, useEffect } from 'react'
+import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import {
   User, Lock, LogOut, Users, Calendar, AlertCircle, Plus,
   Search, Edit, Trash2, CheckCircle, XCircle, Stethoscope,
   Settings, Phone, CreditCard, Activity, Clock, ShieldCheck,
-  Eye, EyeOff, Sparkles
+  Eye, EyeOff, Sparkles, Home
 } from 'lucide-react'
 
 export default function StaffPortal() {
-  const [view, setView] = useState('login') // login | admin | doctor
-  const [user, setUser] = useState(null)
+  const { clinicSlug } = useParams()
   const [clinic, setClinic] = useState(null)
+  const [clinicLoading, setClinicLoading] = useState(true)
+  const [clinicError, setClinicError] = useState(false)
+  const [view, setView] = useState('login')
+  const [user, setUser] = useState(null)
 
   useEffect(() => {
-    const saved = localStorage.getItem('staff_session')
-    if (saved) {
-      try {
-        const session = JSON.parse(saved)
-        setUser(session.user)
-        setClinic(session.clinic)
-        setView(session.view)
-      } catch (e) {}
+    loadClinic()
+  }, [clinicSlug])
+
+  const loadClinic = async () => {
+    setClinicLoading(true)
+    const { data, error } = await supabase
+      .from('clinics').select('*')
+      .eq('slug', clinicSlug).eq('is_active', true)
+      .maybeSingle()
+
+    if (error || !data) {
+      setClinicError(true)
+    } else {
+      setClinic(data)
+      // استرجاع الجلسة
+      const saved = localStorage.getItem(`staff_session_${data.id}`)
+      if (saved) {
+        try {
+          const s = JSON.parse(saved)
+          setUser(s.user)
+          setView(s.view)
+        } catch (e) {}
+      }
     }
-  }, [])
+    setClinicLoading(false)
+  }
 
   const handleLogout = () => {
-    localStorage.removeItem('staff_session')
+    if (clinic) localStorage.removeItem(`staff_session_${clinic.id}`)
     setUser(null)
-    setClinic(null)
     setView('login')
   }
 
-  const handleLoginSuccess = (user, clinic, viewType) => {
-    localStorage.setItem('staff_session', JSON.stringify({ user, clinic, view: viewType }))
+  const handleLoginSuccess = (user, viewType) => {
+    if (clinic) localStorage.setItem(`staff_session_${clinic.id}`, JSON.stringify({ user, view: viewType }))
     setUser(user)
-    setClinic(clinic)
     setView(viewType)
+  }
+
+  if (clinicLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <div className="text-center text-white">
+          <div className="inline-block w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+          <p className="mt-4 font-medium">جاري التحميل...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (clinicError || !clinic) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-purple-900 p-4">
+        <div className="glass-dark rounded-3xl p-12 max-w-md w-full text-center shadow-2xl">
+          <div className="text-7xl mb-4">😕</div>
+          <h2 className="text-2xl font-black text-white mb-2">العيادة غير موجودة</h2>
+          <p className="text-white/70 mb-6">الرابط غير صحيح</p>
+          <Link to="/" className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-2xl font-bold shadow-xl btn-glow">
+            <Home className="w-5 h-5" /> الرئيسية
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -47,7 +91,7 @@ export default function StaffPortal() {
             <div className="floating-shape w-96 h-96 bg-purple-500 top-10 -right-20"></div>
             <div className="floating-shape w-80 h-80 bg-indigo-500 bottom-20 -left-20" style={{animationDelay: '2s'}}></div>
           </div>
-          <StaffLogin onSuccess={handleLoginSuccess} />
+          <StaffLogin clinic={clinic} onSuccess={handleLoginSuccess} />
         </>
       )}
       {view === 'admin' && <AdminDashboard user={user} clinic={clinic} onLogout={handleLogout} />}
@@ -59,14 +103,14 @@ export default function StaffPortal() {
 // ═══════════════════════════════════════════════════════════
 // 🔐 تسجيل دخول الموظفين
 // ═══════════════════════════════════════════════════════════
-function StaffLogin({ onSuccess }) {
+function StaffLogin({ clinic, onSuccess }) {
   const [userType, setUserType] = useState('admin')
   const [credentials, setCredentials] = useState({ username: '', password: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
 
-    const handleLogin = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
@@ -74,32 +118,30 @@ function StaffLogin({ onSuccess }) {
     try {
       if (userType === 'admin') {
         const { data, error: err } = await supabase
-          .from('admin_users')
-          .select('*, clinics(*)')
+          .from('admin_users').select('*')
+          .eq('clinic_id', clinic.id)
           .eq('username', credentials.username.trim())
           .eq('password', credentials.password)
           .in('role', ['clinic_admin', 'super_admin'])
           .limit(1)
 
         if (err) { console.error(err); setError('❌ خطأ في الاتصال'); setLoading(false); return }
-
         if (data && data.length > 0) {
-          onSuccess(data[0], data[0].clinics, 'admin')
+          onSuccess(data[0], 'admin')
         } else {
           setError('❌ بيانات الدخول غير صحيحة')
         }
       } else {
         const { data, error: err } = await supabase
-          .from('doctors')
-          .select('*, clinics(*)')
+          .from('doctors').select('*')
+          .eq('clinic_id', clinic.id)
           .eq('username', credentials.username.trim())
           .eq('password', credentials.password)
           .limit(1)
 
         if (err) { console.error(err); setError('❌ خطأ في الاتصال'); setLoading(false); return }
-
         if (data && data.length > 0) {
-          onSuccess(data[0], data[0].clinics, 'doctor')
+          onSuccess(data[0], 'doctor')
         } else {
           setError('❌ بيانات الدخول غير صحيحة')
         }
@@ -111,10 +153,10 @@ function StaffLogin({ onSuccess }) {
       setLoading(false)
     }
   }
-      return (
+
+  return (
     <div className="min-h-screen flex items-center justify-center p-4 page-enter">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-block mb-4 relative">
             <div className="absolute inset-0 bg-purple-500/30 rounded-full blur-2xl"></div>
@@ -122,32 +164,18 @@ function StaffLogin({ onSuccess }) {
               <ShieldCheck className="w-12 h-12 text-white" />
             </div>
           </div>
-          <h1 className="text-4xl font-black text-white mb-2">بوابة الموظفين</h1>
-          <p className="text-white/70">تسجيل دخول الأدمن والأطباء</p>
+          <h1 className="text-3xl font-black text-white mb-1">{clinic.name}</h1>
+          <p className="text-white/70 text-sm">بوابة الموظفين</p>
         </div>
 
-        {/* Form Card */}
         <div className="glass-dark rounded-3xl p-8 shadow-2xl animate-slide-up">
-          {/* User Type Toggle */}
           <div className="grid grid-cols-2 gap-2 mb-6 bg-white/5 p-1.5 rounded-2xl">
-            <button
-              onClick={() => setUserType('admin')}
-              className={`py-3 rounded-xl font-bold transition ${
-                userType === 'admin'
-                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg'
-                  : 'text-white/70 hover:text-white'
-              }`}
-            >
+            <button onClick={() => setUserType('admin')}
+              className={`py-3 rounded-xl font-bold transition ${userType === 'admin' ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg' : 'text-white/70 hover:text-white'}`}>
               ⚙️ أدمن
             </button>
-            <button
-              onClick={() => setUserType('doctor')}
-              className={`py-3 rounded-xl font-bold transition ${
-                userType === 'doctor'
-                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
-                  : 'text-white/70 hover:text-white'
-              }`}
-            >
+            <button onClick={() => setUserType('doctor')}
+              className={`py-3 rounded-xl font-bold transition ${userType === 'doctor' ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg' : 'text-white/70 hover:text-white'}`}>
               👨‍⚕️ دكتور
             </button>
           </div>
@@ -157,14 +185,9 @@ function StaffLogin({ onSuccess }) {
               <label className="block text-sm font-bold text-white/90 mb-2">اسم المستخدم</label>
               <div className="relative">
                 <User className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
-                <input
-                  type="text"
-                  value={credentials.username}
-                  onChange={(e) => setCredentials({...credentials, username: e.target.value})}
-                  placeholder={userType === 'admin' ? 'admin' : 'doctor'}
-                  required
-                  className="w-full pr-12 pl-4 py-4 bg-white/10 border-2 border-white/20 rounded-2xl text-white placeholder-white/40 text-right focus:border-purple-400 outline-none transition font-medium"
-                />
+                <input type="text" value={credentials.username} onChange={(e) => setCredentials({...credentials, username: e.target.value})}
+                  placeholder={userType === 'admin' ? 'admin' : 'doctor'} required
+                  className="w-full pr-12 pl-4 py-4 bg-white/10 border-2 border-white/20 rounded-2xl text-white placeholder-white/40 text-right focus:border-purple-400 outline-none transition font-medium" />
               </div>
             </div>
 
@@ -172,19 +195,11 @@ function StaffLogin({ onSuccess }) {
               <label className="block text-sm font-bold text-white/90 mb-2">كلمة المرور</label>
               <div className="relative">
                 <Lock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={credentials.password}
-                  onChange={(e) => setCredentials({...credentials, password: e.target.value})}
-                  placeholder="••••••"
-                  required
-                  className="w-full pr-12 pl-12 py-4 bg-white/10 border-2 border-white/20 rounded-2xl text-white placeholder-white/40 text-right focus:border-purple-400 outline-none transition font-medium"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
-                >
+                <input type={showPassword ? 'text' : 'password'} value={credentials.password} onChange={(e) => setCredentials({...credentials, password: e.target.value})}
+                  placeholder="••••••" required
+                  className="w-full pr-12 pl-12 py-4 bg-white/10 border-2 border-white/20 rounded-2xl text-white placeholder-white/40 text-right focus:border-purple-400 outline-none transition font-medium" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white">
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
@@ -196,24 +211,16 @@ function StaffLogin({ onSuccess }) {
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-4 text-white font-bold rounded-2xl btn-glow disabled:opacity-50 shadow-xl text-lg ${
-                userType === 'admin'
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600'
-                  : 'bg-gradient-to-r from-green-600 to-emerald-600'
-              }`}
-            >
+            <button type="submit" disabled={loading}
+              className={`w-full py-4 text-white font-bold rounded-2xl btn-glow disabled:opacity-50 shadow-xl text-lg ${userType === 'admin' ? 'bg-gradient-to-r from-purple-600 to-indigo-600' : 'bg-gradient-to-r from-green-600 to-emerald-600'}`}>
               {loading ? '⏳ جاري الدخول...' : '🚀 دخول'}
             </button>
           </form>
 
-          {/* بيانات تجريبية */}
-          <div className="mt-6 pt-6 border-t border-white/10 text-xs text-white/60">
-            <p className="font-bold text-white/80 mb-2">🔐 بيانات تجريبية:</p>
-            <p>⚙️ أدمن: <code className="bg-white/10 px-2 py-0.5 rounded">admin / admin123</code></p>
-            <p>👨‍⚕️ دكتور: <code className="bg-white/10 px-2 py-0.5 rounded">doctor / 123456</code></p>
+          <div className="text-center mt-6">
+            <Link to="/" className="text-white/60 hover:text-white text-sm inline-flex items-center gap-1">
+              <Home className="w-4 h-4" /> الرئيسية
+            </Link>
           </div>
         </div>
       </div>
@@ -256,7 +263,6 @@ function AdminDashboard({ user, clinic, onLogout }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 page-enter" dir="rtl">
-      {/* Header */}
       <header className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 shadow-2xl sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-5">
           <div className="flex items-center justify-between">
@@ -275,7 +281,6 @@ function AdminDashboard({ user, clinic, onLogout }) {
             </button>
           </div>
 
-          {/* Tabs */}
           <div className="flex gap-2 mt-5 overflow-x-auto pb-1">
             {[
               { id: 'dashboard', label: 'الرئيسية', icon: '📊' },
@@ -284,13 +289,8 @@ function AdminDashboard({ user, clinic, onLogout }) {
               { id: 'appointments', label: 'المواعيد', icon: '📅' },
               { id: 'complaints', label: 'الشكاوى', icon: '⚠️' },
             ].map(t => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap transition ${
-                  tab === t.id ? 'bg-white text-indigo-600 shadow-lg' : 'text-white/80 hover:bg-white/10'
-                }`}
-              >
+              <button key={t.id} onClick={() => setTab(t.id)}
+                className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap transition ${tab === t.id ? 'bg-white text-indigo-600 shadow-lg' : 'text-white/80 hover:bg-white/10'}`}>
                 {t.icon} {t.label}
               </button>
             ))}
@@ -309,15 +309,12 @@ function AdminDashboard({ user, clinic, onLogout }) {
   )
 }
 
-// ─── Dashboard Tab ──────────────────────
 function DashTab({ stats, appointments, setTab }) {
   const today = new Date().toISOString().split('T')[0]
   const todayAppts = appointments.filter(a => a.appointment_date === today)
-
   return (
     <div className="space-y-6">
       <h2 className="text-3xl font-black text-gray-800">نظرة عامة 📊</h2>
-
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <BigStat icon="👥" label="إجمالي المرضى" value={stats.patients} gradient="from-blue-500 to-cyan-600" onClick={() => setTab('patients')} />
         <BigStat icon="👨‍⚕️" label="الأطباء" value={stats.doctors} gradient="from-green-500 to-emerald-600" onClick={() => setTab('doctors')} />
@@ -327,8 +324,7 @@ function DashTab({ stats, appointments, setTab }) {
 
       <div className="bg-white rounded-3xl p-6 shadow-xl">
         <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-          <Calendar className="w-6 h-6 text-indigo-600" />
-          مواعيد اليوم
+          <Calendar className="w-6 h-6 text-indigo-600" /> مواعيد اليوم
         </h3>
         {todayAppts.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
@@ -357,10 +353,8 @@ function BigStat({ icon, label, value, gradient, onClick }) {
 
 function AdminApptCard({ apt }) {
   const colors = {
-    pending: 'bg-yellow-100 text-yellow-700',
-    confirmed: 'bg-green-100 text-green-700',
-    completed: 'bg-blue-100 text-blue-700',
-    cancelled: 'bg-red-100 text-red-700',
+    pending: 'bg-yellow-100 text-yellow-700', confirmed: 'bg-green-100 text-green-700',
+    completed: 'bg-blue-100 text-blue-700', cancelled: 'bg-red-100 text-red-700',
   }
   return (
     <div className="border-2 border-gray-100 rounded-2xl p-4 hover:border-indigo-200 hover:shadow-md transition">
@@ -381,7 +375,6 @@ function AdminApptCard({ apt }) {
   )
 }
 
-// ─── Patients Tab ──────────────────────
 function PatientsTab({ patients, clinic, onUpdate }) {
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
@@ -398,8 +391,7 @@ function PatientsTab({ patients, clinic, onUpdate }) {
     const { error } = await supabase.from('patients').insert([{ ...form, clinic_id: clinic.id }])
     if (error) { alert('❌ ' + error.message); return }
     setForm({ name: '', phone: '', national_id: '', gender: 'male', password: '123456' })
-    setShowForm(false)
-    onUpdate()
+    setShowForm(false); onUpdate()
   }
 
   const deletePatient = async (id) => {
@@ -444,12 +436,8 @@ function PatientsTab({ patients, clinic, onUpdate }) {
       <div className="bg-white rounded-3xl p-6 shadow-xl">
         <div className="relative mb-4">
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            placeholder="🔍 بحث بالاسم أو الجوال أو رقم الهوية..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pr-12 pl-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-indigo-500 outline-none"
-          />
+          <input placeholder="🔍 بحث بالاسم أو الجوال أو رقم الهوية..." value={search} onChange={(e) => setSearch(e.target.value)}
+            className="w-full pr-12 pl-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-indigo-500 outline-none" />
         </div>
 
         {filtered.length === 0 ? (
@@ -485,7 +473,6 @@ function PatientsTab({ patients, clinic, onUpdate }) {
   )
 }
 
-// ─── Doctors Tab ──────────────────────
 function DoctorsTab({ doctors, clinic, onUpdate }) {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ name: '', specialization: '', phone: '', username: '', password: '123456' })
@@ -495,8 +482,7 @@ function DoctorsTab({ doctors, clinic, onUpdate }) {
     const { error } = await supabase.from('doctors').insert([{ ...form, clinic_id: clinic.id }])
     if (error) { alert('❌ ' + error.message); return }
     setForm({ name: '', specialization: '', phone: '', username: '', password: '123456' })
-    setShowForm(false)
-    onUpdate()
+    setShowForm(false); onUpdate()
   }
 
   const del = async (id) => {
@@ -545,9 +531,7 @@ function DoctorsTab({ doctors, clinic, onUpdate }) {
           <div key={d.id} className="bg-white rounded-2xl p-5 shadow-lg card-hover">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center text-3xl">
-                  👨‍⚕️
-                </div>
+                <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center text-3xl">👨‍⚕️</div>
                 <div>
                   <p className="font-bold text-gray-800 text-lg">{d.name}</p>
                   <p className="text-sm text-gray-600">{d.specialization}</p>
@@ -565,7 +549,6 @@ function DoctorsTab({ doctors, clinic, onUpdate }) {
   )
 }
 
-// ─── Appointments Manage Tab ──────────────────────
 function AppointmentsManageTab({ appointments, onUpdate }) {
   const updateStatus = async (id, status) => {
     await supabase.from('appointments').update({ status }).eq('id', id)
@@ -598,11 +581,8 @@ function AppointmentsManageTab({ appointments, onUpdate }) {
                     <p className="text-sm text-indigo-600 font-bold mt-2">📅 {apt.appointment_date} ⏰ {apt.appointment_time}</p>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <select
-                      value={apt.status}
-                      onChange={(e) => updateStatus(apt.id, e.target.value)}
-                      className="px-3 py-2 border-2 border-gray-200 rounded-xl text-sm font-bold focus:border-indigo-500 outline-none"
-                    >
+                    <select value={apt.status} onChange={(e) => updateStatus(apt.id, e.target.value)}
+                      className="px-3 py-2 border-2 border-gray-200 rounded-xl text-sm font-bold focus:border-indigo-500 outline-none">
                       <option value="pending">⏳ قيد التأكيد</option>
                       <option value="confirmed">✅ مؤكد</option>
                       <option value="completed">✔️ مكتمل</option>
@@ -622,20 +602,16 @@ function AppointmentsManageTab({ appointments, onUpdate }) {
   )
 }
 
-// ─── Complaints Manage Tab ──────────────────────
 function ComplaintsManageTab({ complaints, onUpdate }) {
   const [editingId, setEditingId] = useState(null)
   const [response, setResponse] = useState('')
 
   const respond = async (id, status) => {
     await supabase.from('complaints').update({
-      response: response,
-      status: status,
+      response: response, status: status,
       resolved_at: status === 'resolved' ? new Date().toISOString() : null
     }).eq('id', id)
-    setEditingId(null)
-    setResponse('')
-    onUpdate()
+    setEditingId(null); setResponse(''); onUpdate()
   }
 
   return (
@@ -656,11 +632,7 @@ function ComplaintsManageTab({ complaints, onUpdate }) {
                     <p className="font-bold text-gray-800">{c.subject}</p>
                     <p className="text-sm text-gray-500">👤 {c.patients?.name} • 📞 {c.patients?.phone}</p>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    c.status === 'open' ? 'bg-red-100 text-red-700' :
-                    c.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-green-100 text-green-700'
-                  }`}>
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${c.status === 'open' ? 'bg-red-100 text-red-700' : c.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
                     {c.status === 'open' ? '🔴 مفتوحة' : c.status === 'in_progress' ? '🟡 قيد المعالجة' : '🟢 تم حلها'}
                   </span>
                 </div>
@@ -675,13 +647,8 @@ function ComplaintsManageTab({ complaints, onUpdate }) {
 
                 {editingId === c.id ? (
                   <div className="space-y-2">
-                    <textarea
-                      value={response}
-                      onChange={(e) => setResponse(e.target.value)}
-                      placeholder="اكتب الرد..."
-                      rows="3"
-                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:border-indigo-500 outline-none"
-                    />
+                    <textarea value={response} onChange={(e) => setResponse(e.target.value)} placeholder="اكتب الرد..." rows="3"
+                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:border-indigo-500 outline-none" />
                     <div className="flex gap-2 flex-wrap">
                       <button onClick={() => respond(c.id, 'in_progress')} className="bg-yellow-500 text-white px-4 py-2 rounded-lg font-bold text-sm">🟡 قيد المعالجة</button>
                       <button onClick={() => respond(c.id, 'resolved')} className="bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-sm">✅ تم الحل</button>
@@ -719,8 +686,7 @@ function DoctorDashboard({ user, clinic, onLogout }) {
   const load = async () => {
     setLoading(true)
     const { data } = await supabase
-      .from('appointments')
-      .select('*, patients(*)')
+      .from('appointments').select('*, patients(*)')
       .eq('doctor_id', user.id)
       .order('appointment_date', { ascending: false })
       .order('appointment_time')
@@ -743,14 +709,11 @@ function DoctorDashboard({ user, clinic, onLogout }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 page-enter" dir="rtl">
-      {/* Header */}
       <header className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 shadow-2xl sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm text-2xl">
-                👨‍⚕️
-              </div>
+              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm text-2xl">👨‍⚕️</div>
               <div>
                 <h1 className="text-white font-black text-xl">{user.name}</h1>
                 <p className="text-white/80 text-xs">{user.specialization} • {clinic?.name}</p>
@@ -765,7 +728,6 @@ function DoctorDashboard({ user, clinic, onLogout }) {
       </header>
 
       <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
-        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <BigStat icon="🆕" label="كشف أول" value={firstVisits.length} gradient="from-red-500 to-pink-600" onClick={() => setFilter('first_visit')} />
           <BigStat icon="🚨" label="طوارئ" value={emergencies.length} gradient="from-orange-500 to-red-600" onClick={() => setFilter('emergency')} />
@@ -773,17 +735,12 @@ function DoctorDashboard({ user, clinic, onLogout }) {
           <BigStat icon="📋" label="الكل" value={appointments.length} gradient="from-indigo-500 to-purple-600" onClick={() => setFilter('all')} />
         </div>
 
-        {/* Filters */}
         <div className="bg-white rounded-3xl p-6 shadow-xl">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                placeholder="🔍 بحث بالاسم أو الجوال أو رقم الهوية..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pr-12 pl-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-green-500 outline-none"
-              />
+              <input placeholder="🔍 بحث بالاسم أو الجوال أو رقم الهوية..." value={search} onChange={(e) => setSearch(e.target.value)}
+                className="w-full pr-12 pl-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-green-500 outline-none" />
             </div>
             <select value={filter} onChange={(e) => setFilter(e.target.value)}
               className="px-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-green-500 outline-none font-bold">
@@ -796,10 +753,8 @@ function DoctorDashboard({ user, clinic, onLogout }) {
           </div>
         </div>
 
-        {/* Patients List */}
         <div className="bg-white rounded-3xl p-6 shadow-xl">
           <h3 className="text-xl font-bold text-gray-800 mb-4">📋 قائمة المرضى ({filtered.length})</h3>
-
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block w-12 h-12 border-4 border-green-200 border-t-green-600 rounded-full animate-spin"></div>
@@ -812,12 +767,7 @@ function DoctorDashboard({ user, clinic, onLogout }) {
           ) : (
             <div className="space-y-3">
               {filtered.map(apt => (
-                <div key={apt.id} className={`border-r-4 rounded-2xl p-4 ${
-                  apt.type === 'first_visit' ? 'border-red-500 bg-red-50' :
-                  apt.type === 'emergency' ? 'border-orange-500 bg-orange-50' :
-                  apt.type === 'follow_up' ? 'border-green-500 bg-green-50' :
-                  'border-blue-500 bg-blue-50'
-                }`}>
+                <div key={apt.id} className={`border-r-4 rounded-2xl p-4 ${apt.type === 'first_visit' ? 'border-red-500 bg-red-50' : apt.type === 'emergency' ? 'border-orange-500 bg-orange-50' : apt.type === 'follow_up' ? 'border-green-500 bg-green-50' : 'border-blue-500 bg-blue-50'}`}>
                   <div className="flex items-start justify-between flex-wrap gap-3">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-2xl shadow">
@@ -826,26 +776,15 @@ function DoctorDashboard({ user, clinic, onLogout }) {
                       <div>
                         <p className="font-bold text-gray-800 text-lg">{apt.patients?.name}</p>
                         <p className="text-sm text-gray-600">📞 {apt.patients?.phone}</p>
-                        {apt.patients?.national_id && (
-                          <p className="text-xs text-gray-500">🆔 {apt.patients.national_id}</p>
-                        )}
-                        {apt.patients?.medical_notes && (
-                          <p className="text-xs text-gray-600 mt-1">📋 {apt.patients.medical_notes}</p>
-                        )}
+                        {apt.patients?.national_id && <p className="text-xs text-gray-500">🆔 {apt.patients.national_id}</p>}
+                        {apt.patients?.medical_notes && <p className="text-xs text-gray-600 mt-1">📋 {apt.patients.medical_notes}</p>}
                       </div>
                     </div>
                     <div className="text-left">
                       <p className="font-bold text-gray-700">📅 {apt.appointment_date}</p>
                       <p className="text-gray-600">⏰ {apt.appointment_time}</p>
-                      <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${
-                        apt.type === 'first_visit' ? 'bg-red-200 text-red-800' :
-                        apt.type === 'emergency' ? 'bg-orange-200 text-orange-800' :
-                        apt.type === 'follow_up' ? 'bg-green-200 text-green-800' :
-                        'bg-blue-200 text-blue-800'
-                      }`}>
-                        {apt.type === 'first_visit' ? '🆕 كشف أول' :
-                         apt.type === 'emergency' ? '🚨 طوارئ' :
-                         apt.type === 'follow_up' ? '🔄 متابعة' : '💬 استشارة'}
+                      <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${apt.type === 'first_visit' ? 'bg-red-200 text-red-800' : apt.type === 'emergency' ? 'bg-orange-200 text-orange-800' : apt.type === 'follow_up' ? 'bg-green-200 text-green-800' : 'bg-blue-200 text-blue-800'}`}>
+                        {apt.type === 'first_visit' ? '🆕 كشف أول' : apt.type === 'emergency' ? '🚨 طوارئ' : apt.type === 'follow_up' ? '🔄 متابعة' : '💬 استشارة'}
                       </span>
                     </div>
                   </div>
