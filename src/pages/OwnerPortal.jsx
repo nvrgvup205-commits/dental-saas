@@ -1,228 +1,137 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import {
-  User, Lock, Phone, CreditCard, Calendar, Heart, AlertCircle,
-  LogOut, Plus, CheckCircle, XCircle, Clock, FileText,
-  ArrowLeft, ArrowRight, Sparkles, Stethoscope, Activity,
-  ShieldCheck, Settings, Eye, EyeOff, Home, Info, Pill,
-  DollarSign, Receipt, X, ChevronRight, ChevronLeft
+  User, Lock, LogOut, Building2, Plus, Phone, Mail, MapPin,
+  Calendar, Trash2, Edit, Crown, Sparkles, Eye, EyeOff,
+  Users, Activity, TrendingUp, CheckCircle, Clock, Copy,
+  ExternalLink, Settings, Home, BarChart3, Save, X
 } from 'lucide-react'
 
-export default function PatientPortal() {
-  const { clinicSlug } = useParams()
-  const [clinic, setClinic] = useState(null)
-  const [clinicLoading, setClinicLoading] = useState(true)
-  const [clinicError, setClinicError] = useState(false)
-  const [view, setView] = useState('welcome')
-  const [currentPatient, setCurrentPatient] = useState(null)
+export default function OwnerPortal() {
+  const [view, setView] = useState('login')
+  const [user, setUser] = useState(null)
 
-  useEffect(() => { loadClinic() }, [clinicSlug])
-
-  const loadClinic = async () => {
-    setClinicLoading(true)
-    const { data, error } = await supabase
-      .from('clinics').select('*')
-      .eq('slug', clinicSlug).eq('is_active', true).maybeSingle()
-
-    if (error || !data) { setClinicError(true) }
-    else {
-      setClinic(data)
-      const saved = localStorage.getItem(`patient_session_${data.id}`)
-      if (saved) {
-        try {
-          setCurrentPatient(JSON.parse(saved))
-          setView('dashboard')
-        } catch (e) {}
-      }
+  useEffect(() => {
+    const saved = localStorage.getItem('owner_session')
+    if (saved) {
+      try {
+        setUser(JSON.parse(saved))
+        setView('dashboard')
+      } catch (e) {}
     }
-    setClinicLoading(false)
-  }
+  }, [])
 
   const handleLogout = () => {
-    if (clinic) localStorage.removeItem(`patient_session_${clinic.id}`)
-    setCurrentPatient(null); setView('welcome')
+    localStorage.removeItem('owner_session')
+    setUser(null); setView('login')
   }
 
-  const handleLoginSuccess = (patient) => {
-    if (clinic) localStorage.setItem(`patient_session_${clinic.id}`, JSON.stringify(patient))
-    setCurrentPatient(patient); setView('dashboard')
+  const handleSuccess = (u) => {
+    localStorage.setItem('owner_session', JSON.stringify(u))
+    setUser(u); setView('dashboard')
   }
-
-  if (clinicLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center gradient-bg-animated">
-        <div className="text-center text-white">
-          <div className="inline-block w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
-          <p className="mt-4 font-medium">جاري التحميل...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (clinicError || !clinic) {
-    return (
-      <div className="min-h-screen flex items-center justify-center gradient-bg-animated p-4">
-        <div className="glass rounded-3xl p-12 max-w-md w-full text-center shadow-2xl">
-          <div className="text-7xl mb-4">😕</div>
-          <h2 className="text-2xl font-black text-gray-800 mb-2">العيادة غير موجودة</h2>
-          <Link to="/" className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-2xl font-bold shadow-xl btn-glow">
-            <Home className="w-5 h-5" /> الرئيسية
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  const primary = clinic.primary_color || '#6366F1'
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      <div className="fixed inset-0 -z-10"
-        style={{ background: `linear-gradient(-45deg, ${primary}, ${primary}cc, #ec4899, #4facfe)`, backgroundSize: '400% 400%', animation: 'gradient 15s ease infinite' }}></div>
-      <div className="fixed inset-0 overflow-hidden -z-10 pointer-events-none">
-        <div className="floating-shape w-96 h-96 bg-purple-300 top-10 -right-20"></div>
-        <div className="floating-shape w-80 h-80 bg-pink-300 bottom-20 -left-20" style={{animationDelay: '2s'}}></div>
-      </div>
-
-      {view === 'welcome' && <WelcomeScreen clinic={clinic} onLogin={() => setView('login')} onRegister={() => setView('register')} />}
-      {view === 'login' && <LoginScreen clinic={clinic} onBack={() => setView('welcome')} onSuccess={handleLoginSuccess} onRegister={() => setView('register')} />}
-      {view === 'register' && <RegisterScreen clinic={clinic} onBack={() => setView('welcome')} onSuccess={handleLoginSuccess} onLogin={() => setView('login')} />}
-      {view === 'dashboard' && <Dashboard patient={currentPatient} clinic={clinic} onLogout={handleLogout} setPatient={setCurrentPatient} />}
-    </div>
-  )
-}
-
-// ═══════════════════════════════════════════════════════════
-// Welcome
-// ═══════════════════════════════════════════════════════════
-function WelcomeScreen({ clinic, onLogin, onRegister }) {
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4 page-enter">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-10 animate-fade-in">
-          <div className="inline-block mb-6 relative">
-            <div className="absolute inset-0 bg-white/30 rounded-full blur-2xl"></div>
-            <div className="relative w-28 h-28 mx-auto bg-white rounded-3xl shadow-2xl flex items-center justify-center text-7xl animate-float">🦷</div>
+      {view === 'login' && (
+        <>
+          <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-yellow-900 to-gray-900 -z-10"></div>
+          <div className="fixed inset-0 overflow-hidden -z-10 pointer-events-none">
+            <div className="floating-shape w-96 h-96 bg-yellow-500 top-10 -right-20"></div>
+            <div className="floating-shape w-80 h-80 bg-orange-500 bottom-20 -left-20" style={{animationDelay: '2s'}}></div>
           </div>
-          <h1 className="text-4xl font-black text-white mb-2 drop-shadow-lg">{clinic.name}</h1>
-          <p className="text-white/90 text-lg font-medium">أهلاً بك في عيادتنا</p>
-          <Link to={`/${clinic.slug}/about`} className="inline-flex items-center gap-1 mt-3 text-white/90 hover:text-white text-sm bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-full backdrop-blur transition">
-            <Info className="w-4 h-4" /> عن العيادة
-          </Link>
-        </div>
-
-        <div className="space-y-4 animate-slide-up">
-          <button onClick={onLogin} className="w-full glass rounded-2xl p-6 text-right card-hover btn-glow group">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition">
-                  <User className="w-7 h-7" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-800 text-xl">تسجيل الدخول</h3>
-                  <p className="text-gray-600 text-sm">عميل مسجل بالفعل</p>
-                </div>
-              </div>
-              <ArrowLeft className="w-6 h-6 text-gray-400 group-hover:text-indigo-600 group-hover:-translate-x-1 transition" />
-            </div>
-          </button>
-
-          <button onClick={onRegister} className="w-full glass rounded-2xl p-6 text-right card-hover btn-glow group">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition">
-                  <Plus className="w-7 h-7" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-800 text-xl">مريض جديد</h3>
-                  <p className="text-gray-600 text-sm">سجّل حسابك لأول مرة</p>
-                </div>
-              </div>
-              <ArrowLeft className="w-6 h-6 text-gray-400 group-hover:text-pink-600 group-hover:-translate-x-1 transition" />
-            </div>
-          </button>
-        </div>
-
-        <div className="text-center mt-8 space-y-2">
-          <Link to="/" className="text-white/70 hover:text-white text-sm inline-flex items-center gap-1">
-            <Home className="w-4 h-4" /> اختيار عيادة أخرى
-          </Link>
-        </div>
-      </div>
+          <OwnerLogin onSuccess={handleSuccess} />
+        </>
+      )}
+      {view === 'dashboard' && <OwnerDashboard user={user} onLogout={handleLogout} />}
     </div>
   )
 }
 
-// ═══════════════════════════════════════════════════════════
-// Login
-// ═══════════════════════════════════════════════════════════
-function LoginScreen({ clinic, onBack, onSuccess, onRegister }) {
-  const [phone, setPhone] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
+function OwnerLogin({ onSuccess }) {
+  const [credentials, setCredentials] = useState({ username: '', password: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleLogin = async (e) => {
     e.preventDefault(); setError(''); setLoading(true)
     try {
-      const { data, error: dbError } = await supabase.from('patients').select('*')
-        .eq('clinic_id', clinic.id).eq('phone', phone.trim()).eq('password', password).limit(1)
-      if (dbError) throw dbError
-      if (!data || data.length === 0) { setError('❌ رقم الجوال أو كلمة المرور غير صحيحة'); setLoading(false); return }
-      onSuccess({ ...data[0], clinics: clinic })
-    } catch (err) { setError('❌ حصل خطأ، حاول مرة أخرى') }
-    finally { setLoading(false) }
+      const { data } = await supabase
+        .from('admin_users').select('*')
+        .eq('username', credentials.username.trim())
+        .eq('password', credentials.password)
+        .eq('role', 'owner')
+        .limit(1)
+      if (data && data.length > 0) {
+        onSuccess(data[0])
+      } else {
+        setError('❌ بيانات الدخول غير صحيحة')
+      }
+    } catch (err) {
+      setError('❌ حصل خطأ')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 page-enter">
       <div className="w-full max-w-md">
-        <button onClick={onBack} className="text-white/90 hover:text-white flex items-center gap-2 mb-6 transition group">
-          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition" /><span>رجوع</span>
-        </button>
-
-        <div className="glass rounded-3xl p-8 shadow-2xl animate-slide-up">
-          <div className="text-center mb-8">
-            <div className="w-20 h-20 mx-auto bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-xl mb-4">
-              <ShieldCheck className="w-10 h-10 text-white" />
+        <div className="text-center mb-8">
+          <div className="inline-block mb-4 relative">
+            <div className="absolute inset-0 bg-yellow-500/40 rounded-full blur-2xl animate-pulse"></div>
+            <div className="relative w-24 h-24 mx-auto bg-gradient-to-br from-yellow-400 via-yellow-500 to-orange-600 rounded-3xl shadow-2xl flex items-center justify-center">
+              <Crown className="w-12 h-12 text-white" />
             </div>
-            <h2 className="text-3xl font-black text-gray-800 mb-1">تسجيل الدخول</h2>
-            <p className="text-sm text-gray-500">{clinic.name}</p>
           </div>
+          <h1 className="text-4xl font-black text-white mb-2">👑 المالك</h1>
+          <p className="text-white/70">لوحة تحكم صاحب النظام</p>
+        </div>
 
-          <form onSubmit={handleLogin} className="space-y-5">
+        <div className="glass-dark rounded-3xl p-8 shadow-2xl animate-slide-up border border-yellow-500/20">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">رقم الجوال</label>
+              <label className="block text-sm font-bold text-yellow-200 mb-2">اسم المستخدم</label>
               <div className="relative">
-                <Phone className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="05xxxxxxxx" required disabled={loading}
-                  className="w-full pr-12 pl-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-indigo-500 input-glow outline-none transition font-medium" />
+                <User className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-yellow-400/60" />
+                <input type="text" value={credentials.username} onChange={(e) => setCredentials({...credentials, username: e.target.value})}
+                  placeholder="owner" required
+                  className="w-full pr-12 pl-4 py-4 bg-white/5 border-2 border-yellow-500/30 rounded-2xl text-white placeholder-white/30 text-right focus:border-yellow-400 outline-none transition font-medium" />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">كلمة المرور</label>
+              <label className="block text-sm font-bold text-yellow-200 mb-2">كلمة المرور</label>
               <div className="relative">
-                <Lock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••" required disabled={loading}
-                  className="w-full pr-12 pl-12 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-indigo-500 input-glow outline-none transition font-medium" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                <Lock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-yellow-400/60" />
+                <input type={showPassword ? 'text' : 'password'} value={credentials.password} onChange={(e) => setCredentials({...credentials, password: e.target.value})}
+                  placeholder="••••••" required
+                  className="w-full pr-12 pl-12 py-4 bg-white/5 border-2 border-yellow-500/30 rounded-2xl text-white placeholder-white/30 text-right focus:border-yellow-400 outline-none transition font-medium" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-yellow-400/60 hover:text-yellow-300">
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
 
-            {error && <div className="bg-red-50 border-2 border-red-200 text-red-700 p-4 rounded-2xl text-sm font-medium animate-fade-in">{error}</div>}
+            {error && (
+              <div className="bg-red-500/20 border-2 border-red-500/40 text-red-200 p-4 rounded-2xl text-sm font-medium animate-fade-in">
+                {error}
+              </div>
+            )}
 
-            <button type="submit" disabled={loading} className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-2xl btn-glow disabled:opacity-50 shadow-xl text-lg">
-              {loading ? '⏳ جاري الدخول...' : '🚀 دخول'}
+            <button type="submit" disabled={loading}
+              className="w-full py-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-white font-bold rounded-2xl btn-glow disabled:opacity-50 shadow-xl text-lg">
+              {loading ? '⏳ جاري الدخول...' : '👑 دخول المالك'}
             </button>
           </form>
 
-          <div className="text-center mt-6 pt-6 border-t border-gray-200">
-            <p className="text-gray-600 text-sm">لسه ما عندكش حساب؟ <button onClick={onRegister} className="text-indigo-600 font-bold hover:underline">سجّل الآن</button></p>
+          <div className="text-center mt-6">
+            <Link to="/" className="text-yellow-300/70 hover:text-yellow-200 text-sm inline-flex items-center gap-1">
+              <Home className="w-4 h-4" /> الرئيسية
+            </Link>
           </div>
         </div>
       </div>
@@ -231,983 +140,429 @@ function LoginScreen({ clinic, onBack, onSuccess, onRegister }) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// Register
+// 👑 لوحة المالك المتقدمة
 // ═══════════════════════════════════════════════════════════
-function RegisterScreen({ clinic, onBack, onSuccess, onLogin }) {
-  const [form, setForm] = useState({
-    name: '', phone: '', national_id: '', date_of_birth: '', gender: 'male',
-    blood_type: '', allergies: '', medical_notes: '', password: '', password_confirm: ''
-  })
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [step, setStep] = useState(1)
-  const update = (field, value) => setForm({ ...form, [field]: value })
-
-  const handleRegister = async (e) => {
-    e.preventDefault(); setError('')
-    if (form.password !== form.password_confirm) { setError('❌ كلمة المرور وتأكيدها غير متطابقين'); return }
-    if (form.password.length < 4) { setError('❌ كلمة المرور يجب أن تكون 4 أحرف على الأقل'); return }
-    setLoading(true)
-    try {
-      const { data: existPhone } = await supabase.from('patients').select('id').eq('clinic_id', clinic.id).eq('phone', form.phone.trim()).limit(1)
-      if (existPhone && existPhone.length > 0) { setError('❌ هذا الرقم مسجل بالفعل في هذه العيادة'); setLoading(false); return }
-      if (form.national_id.trim()) {
-        const { data: existId } = await supabase.from('patients').select('id').eq('clinic_id', clinic.id).eq('national_id', form.national_id.trim()).limit(1)
-        if (existId && existId.length > 0) { setError('❌ رقم الهوية مسجل بالفعل'); setLoading(false); return }
-      }
-      const { data, error: insertError } = await supabase.from('patients').insert([{
-        clinic_id: clinic.id, name: form.name.trim(), phone: form.phone.trim(),
-        national_id: form.national_id.trim() || null, date_of_birth: form.date_of_birth || null,
-        gender: form.gender, blood_type: form.blood_type || null,
-        allergies: form.allergies || null, medical_notes: form.medical_notes || null, password: form.password
-      }]).select().single()
-      if (insertError) throw insertError
-      onSuccess({ ...data, clinics: clinic })
-    } catch (err) { setError('❌ ' + (err.message || 'حصل خطأ')) }
-    finally { setLoading(false) }
-  }
-
-  const goToStep2 = (e) => {
-    e.preventDefault(); setError('')
-    if (!form.name || !form.phone || !form.password) { setError('❌ الرجاء ملء كل الحقول الإلزامية'); return }
-    setStep(2)
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4 py-8 page-enter">
-      <div className="w-full max-w-lg">
-        <button onClick={step === 2 ? () => setStep(1) : onBack} className="text-white/90 hover:text-white flex items-center gap-2 mb-4 transition group">
-          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition" /><span>رجوع</span>
-        </button>
-
-        <div className="glass rounded-3xl p-8 shadow-2xl animate-slide-up">
-          <div className="text-center mb-6">
-            <div className="w-20 h-20 mx-auto bg-gradient-to-br from-pink-500 to-rose-600 rounded-3xl flex items-center justify-center shadow-xl mb-4">
-              <Sparkles className="w-10 h-10 text-white" />
-            </div>
-            <h2 className="text-3xl font-black text-gray-800 mb-1">تسجيل مريض جديد</h2>
-            <p className="text-sm text-gray-500">{clinic.name} • خطوة {step} من 2</p>
-            <div className="flex gap-2 mt-4 max-w-xs mx-auto">
-              <div className={`h-2 flex-1 rounded-full ${step >= 1 ? 'bg-gradient-to-r from-pink-500 to-rose-600' : 'bg-gray-200'}`}></div>
-              <div className={`h-2 flex-1 rounded-full ${step >= 2 ? 'bg-gradient-to-r from-pink-500 to-rose-600' : 'bg-gray-200'}`}></div>
-            </div>
-          </div>
-
-          {step === 1 && (
-            <form onSubmit={goToStep2} className="space-y-4">
-              <Field label="الاسم الكامل *" icon={<User className="w-5 h-5" />}>
-                <input type="text" value={form.name} onChange={(e) => update('name', e.target.value)} placeholder="مثال: محمد أحمد" required
-                  className="w-full pr-12 pl-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-pink-500 input-glow outline-none transition font-medium" />
-              </Field>
-              <Field label="رقم الجوال *" icon={<Phone className="w-5 h-5" />}>
-                <input type="tel" value={form.phone} onChange={(e) => update('phone', e.target.value)} placeholder="05xxxxxxxx" required
-                  className="w-full pr-12 pl-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-pink-500 input-glow outline-none transition font-medium" />
-              </Field>
-              <Field label="رقم الهوية / الإقامة" icon={<CreditCard className="w-5 h-5" />}>
-                <input type="text" value={form.national_id} onChange={(e) => update('national_id', e.target.value)} placeholder="اختياري"
-                  className="w-full pr-12 pl-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-pink-500 input-glow outline-none transition font-medium" />
-              </Field>
-              <Field label="كلمة المرور *" icon={<Lock className="w-5 h-5" />}>
-                <input type="password" value={form.password} onChange={(e) => update('password', e.target.value)} placeholder="على الأقل 4 أحرف" required
-                  className="w-full pr-12 pl-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-pink-500 input-glow outline-none transition font-medium" />
-              </Field>
-              <Field label="تأكيد كلمة المرور *" icon={<Lock className="w-5 h-5" />}>
-                <input type="password" value={form.password_confirm} onChange={(e) => update('password_confirm', e.target.value)} placeholder="أعد كتابة كلمة المرور" required
-                  className="w-full pr-12 pl-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-pink-500 input-glow outline-none transition font-medium" />
-              </Field>
-
-              {error && <div className="bg-red-50 border-2 border-red-200 text-red-700 p-4 rounded-2xl text-sm font-medium animate-fade-in">{error}</div>}
-
-              <button type="submit" className="w-full py-4 bg-gradient-to-r from-pink-600 to-rose-600 text-white font-bold rounded-2xl btn-glow shadow-xl text-lg">التالي ←</button>
-            </form>
-          )}
-
-          {step === 2 && (
-            <form onSubmit={handleRegister} className="space-y-4">
-              <Field label="تاريخ الميلاد" icon={<Calendar className="w-5 h-5" />}>
-                <input type="date" value={form.date_of_birth} onChange={(e) => update('date_of_birth', e.target.value)}
-                  className="w-full pr-12 pl-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-pink-500 input-glow outline-none transition font-medium" />
-              </Field>
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">الجنس</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button type="button" onClick={() => update('gender', 'male')}
-                    className={`py-4 rounded-2xl font-bold transition ${form.gender === 'male' ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-xl scale-105' : 'bg-white/80 text-gray-700 border-2 border-gray-200'}`}>👨 ذكر</button>
-                  <button type="button" onClick={() => update('gender', 'female')}
-                    className={`py-4 rounded-2xl font-bold transition ${form.gender === 'female' ? 'bg-gradient-to-r from-pink-500 to-rose-600 text-white shadow-xl scale-105' : 'bg-white/80 text-gray-700 border-2 border-gray-200'}`}>👩 أنثى</button>
-                </div>
-              </div>
-              <Field label="فصيلة الدم" icon={<Heart className="w-5 h-5" />}>
-                <select value={form.blood_type} onChange={(e) => update('blood_type', e.target.value)}
-                  className="w-full pr-12 pl-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-pink-500 input-glow outline-none transition font-medium">
-                  <option value="">اختياري</option>
-                  <option value="A+">A+</option><option value="A-">A-</option>
-                  <option value="B+">B+</option><option value="B-">B-</option>
-                  <option value="AB+">AB+</option><option value="AB-">AB-</option>
-                  <option value="O+">O+</option><option value="O-">O-</option>
-                </select>
-              </Field>
-              <Field label="الحساسيات" icon={<AlertCircle className="w-5 h-5" />}>
-                <input type="text" value={form.allergies} onChange={(e) => update('allergies', e.target.value)} placeholder="مثال: البنسلين..."
-                  className="w-full pr-12 pl-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-pink-500 input-glow outline-none transition font-medium" />
-              </Field>
-              <Field label="ملاحظات طبية" icon={<FileText className="w-5 h-5" />}>
-                <textarea value={form.medical_notes} onChange={(e) => update('medical_notes', e.target.value)} placeholder="أمراض مزمنة، أدوية..." rows="3"
-                  className="w-full pr-12 pl-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-pink-500 input-glow outline-none transition font-medium resize-none" />
-              </Field>
-
-              {error && <div className="bg-red-50 border-2 border-red-200 text-red-700 p-4 rounded-2xl text-sm font-medium animate-fade-in">{error}</div>}
-
-              <button type="submit" disabled={loading} className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-2xl btn-glow disabled:opacity-50 shadow-xl text-lg">
-                {loading ? '⏳ جاري التسجيل...' : '✅ إنشاء الحساب'}
-              </button>
-            </form>
-          )}
-
-          {step === 1 && (
-            <div className="text-center mt-6 pt-6 border-t border-gray-200">
-              <p className="text-gray-600 text-sm">عندك حساب بالفعل؟ <button onClick={onLogin} className="text-pink-600 font-bold hover:underline">سجّل دخول</button></p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function Field({ label, icon, children }) {
-  return (
-    <div>
-      <label className="block text-sm font-bold text-gray-700 mb-2">{label}</label>
-      <div className="relative">
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 z-10">{icon}</div>
-        {children}
-      </div>
-    </div>
-  )
-}
-
-// ═══════════════════════════════════════════════════════════
-// Dashboard
-// ═══════════════════════════════════════════════════════════
-function Dashboard({ patient, clinic, onLogout, setPatient }) {
-  const [appointments, setAppointments] = useState([])
-  const [complaints, setComplaints] = useState([])
-  const [activeTab, setActiveTab] = useState('home')
+function OwnerDashboard({ user, onLogout }) {
+  const [clinics, setClinics] = useState([])
+  const [clinicStats, setClinicStats] = useState({})
+  const [showForm, setShowForm] = useState(false)
+  const [editingClinic, setEditingClinic] = useState(null)
+  const [stats, setStats] = useState({ total: 0, active: 0, trial: 0, expired: 0 })
   const [loading, setLoading] = useState(true)
-  const [viewingApt, setViewingApt] = useState(null)
 
-  useEffect(() => { loadData() }, [])
+  useEffect(() => { load() }, [])
 
-  const loadData = async () => {
+  const load = async () => {
     setLoading(true)
-    const [apptsRes, complsRes] = await Promise.all([
-      supabase.from('appointments').select('*, doctors(*), medical_records(*)').eq('patient_id', patient.id).order('appointment_date', { ascending: false }),
-      supabase.from('complaints').select('*').eq('patient_id', patient.id).order('created_at', { ascending: false })
-    ])
-    setAppointments(apptsRes.data || [])
-    setComplaints(complsRes.data || [])
-    setLoading(false)
-  }
-
-  const cancelAppointment = async (id) => {
-    if (!confirm('هل تريد إلغاء هذا الموعد؟')) return
-    await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', id)
-    loadData()
-  }
-
-  const today = new Date().toISOString().split('T')[0]
-  const upcoming = appointments.filter(a => a.appointment_date >= today && a.status !== 'cancelled')
-  const past = appointments.filter(a => a.appointment_date < today || a.status === 'cancelled')
-
-  if (viewingApt) {
-    return <AppointmentDetailsView apt={viewingApt} onClose={() => setViewingApt(null)} clinic={clinic} />
-  }
-
-  return (
-    <div className="min-h-screen page-enter">
-      <div className="glass-dark sticky top-0 z-40 shadow-2xl">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-2xl shadow-lg">🦷</div>
-            <div>
-              <h1 className="text-white font-bold text-lg">{patient.name}</h1>
-              <p className="text-white/70 text-xs">{clinic?.name}</p>
-            </div>
-          </div>
-         <div className="flex items-center gap-2">
-  <Link to={`/${clinic.slug}/about`} className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-xl flex items-center gap-1 transition" title="عن العيادة">
-    <Info className="w-4 h-4" />
-    <span className="hidden sm:inline text-sm font-medium">عن العيادة</span>
-  </Link>
-  <button onClick={onLogout} className="bg-white/10 hover:bg-red-500/30 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition">
-    <LogOut className="w-4 h-4" />
-    <span className="hidden sm:inline text-sm font-medium">خروج</span>
-  </button>
-</div>
-        </div>
-
-        <div className="max-w-6xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
-          {[
-            { id: 'home', label: 'الرئيسية', icon: '🏠' },
-            { id: 'appointments', label: 'مواعيدي', icon: '📅' },
-            { id: 'book', label: 'حجز موعد', icon: '➕' },
-            { id: 'complaints', label: 'شكاوي', icon: '⚠️' },
-            { id: 'profile', label: 'بياناتي', icon: '⚙️' },
-          ].map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition ${activeTab === tab.id ? 'bg-white text-indigo-600 shadow-lg' : 'text-white/80 hover:bg-white/10'}`}>
-              {tab.icon} {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="max-w-6xl mx-auto p-4 sm:p-6">
-        {loading ? (
-          <div className="text-center py-20 text-white">
-            <div className="inline-block w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
-            <p className="mt-4 font-medium">جاري التحميل...</p>
-          </div>
-        ) : (
-          <>
-            {activeTab === 'home' && <HomeTab patient={patient} upcoming={upcoming} past={past} complaints={complaints} setActiveTab={setActiveTab} onViewApt={setViewingApt} />}
-            {activeTab === 'appointments' && <AppointmentsTab upcoming={upcoming} past={past} onCancel={cancelAppointment} onView={setViewingApt} />}
-            {activeTab === 'book' && <BookAppointmentTab patient={patient} clinic={clinic} onSuccess={() => { loadData(); setActiveTab('appointments'); }} />}
-            {activeTab === 'complaints' && <ComplaintsTab patient={patient} clinic={clinic} complaints={complaints} onUpdate={loadData} />}
-            {activeTab === 'profile' && <ProfileTab patient={patient} clinic={clinic} setPatient={setPatient} />}
-          </>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// Home Tab
-function HomeTab({ patient, upcoming, past, complaints, setActiveTab, onViewApt }) {
-  const completed = past.filter(a => a.status === 'completed').length
-  return (
-    <div className="space-y-6">
-      <div className="glass rounded-3xl p-8 shadow-2xl">
-        <div className="flex items-center gap-4">
-          <div className="text-6xl animate-float">👋</div>
-          <div>
-            <h2 className="text-3xl font-black text-gray-800">أهلاً {patient.name.split(' ')[0]}!</h2>
-            <p className="text-gray-600 mt-1">سعداء برؤيتك معنا اليوم</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <StatCard icon="📅" label="مواعيد قادمة" value={upcoming.length} gradient="from-blue-500 to-indigo-600" />
-        <StatCard icon="✅" label="مواعيد مكتملة" value={completed} gradient="from-green-500 to-emerald-600" />
-        <StatCard icon="⚠️" label="شكاوى مفتوحة" value={complaints.filter(c => c.status === 'open').length} gradient="from-orange-500 to-red-600" />
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-4">
-        <button onClick={() => setActiveTab('book')} className="glass rounded-2xl p-6 text-right card-hover group">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-bold text-gray-800">حجز موعد جديد 📅</h3>
-              <p className="text-gray-600 text-sm mt-1">اختار التاريخ والوقت المتاح</p>
-            </div>
-            <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition">
-              <Plus className="w-7 h-7" />
-            </div>
-          </div>
-        </button>
-
-        <button onClick={() => setActiveTab('complaints')} className="glass rounded-2xl p-6 text-right card-hover group">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-bold text-gray-800">تقديم شكوى ⚠️</h3>
-              <p className="text-gray-600 text-sm mt-1">شاركنا أي ملاحظة</p>
-            </div>
-            <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition">
-              <AlertCircle className="w-7 h-7" />
-            </div>
-          </div>
-        </button>
-      </div>
-
-      {upcoming.length > 0 && (
-        <div className="glass rounded-3xl p-6 shadow-2xl">
-          <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Calendar className="w-6 h-6 text-indigo-600" /> موعدك القادم
-          </h3>
-          <AppointmentCard apt={upcoming[0]} onView={onViewApt} />
-        </div>
-      )}
-    </div>
-  )
-}
-
-function StatCard({ icon, label, value, gradient }) {
-  return (
-    <div className="glass rounded-2xl p-6 card-hover">
-      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-2xl shadow-lg mb-3`}>{icon}</div>
-      <p className="text-3xl font-black text-gray-800">{value}</p>
-      <p className="text-gray-600 text-sm font-medium mt-1">{label}</p>
-    </div>
-  )
-}
-
-function AppointmentCard({ apt, onCancel, onView }) {
-  const statusColors = { pending: 'from-yellow-400 to-orange-500', confirmed: 'from-green-400 to-emerald-500', completed: 'from-blue-400 to-indigo-500', cancelled: 'from-red-400 to-red-500' }
-  const statusLabels = { pending: '⏳ قيد التأكيد', confirmed: '✅ مؤكد', completed: '✔️ مكتمل', cancelled: '❌ ملغي' }
-  const hasRecord = apt.medical_records && apt.medical_records.length > 0
-
-  return (
-    <div className="bg-white/60 rounded-2xl p-5 border border-white/40">
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <p className="text-2xl font-bold text-gray-800">{apt.appointment_date}</p>
-          <p className="text-gray-600">⏰ {apt.appointment_time}</p>
-        </div>
-        <span className={`px-3 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r ${statusColors[apt.status]}`}>
-          {statusLabels[apt.status]}
-        </span>
-      </div>
-      {apt.doctors && (
-        <div className="flex items-center gap-2 text-gray-700 mb-2">
-          <Stethoscope className="w-4 h-4" />
-          <span className="font-medium">{apt.doctors.name}</span>
-          {apt.doctors.specialization && <span className="text-sm text-gray-500">• {apt.doctors.specialization}</span>}
-        </div>
-      )}
-
-      <div className="flex gap-2 mt-3 flex-wrap">
-        {hasRecord && onView && (
-          <button onClick={() => onView(apt)} className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1">
-            <Receipt className="w-4 h-4" /> عرض التقرير والفاتورة
-          </button>
-        )}
-        {onCancel && apt.status !== 'cancelled' && apt.status !== 'completed' && (
-          <button onClick={() => onCancel(apt.id)} className="text-red-600 hover:bg-red-50 px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-1">
-            <XCircle className="w-4 h-4" /> إلغاء الموعد
-          </button>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function AppointmentsTab({ upcoming, past, onCancel, onView }) {
-  return (
-    <div className="space-y-6">
-      <div className="glass rounded-3xl p-6 shadow-2xl">
-        <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-          <Calendar className="w-6 h-6 text-indigo-600" /> المواعيد القادمة ({upcoming.length})
-        </h3>
-        {upcoming.length === 0 ? <EmptyState icon="📅" message="لا توجد مواعيد قادمة" /> : (
-          <div className="space-y-3">
-            {upcoming.map(apt => <AppointmentCard key={apt.id} apt={apt} onCancel={onCancel} onView={onView} />)}
-          </div>
-        )}
-      </div>
-
-      <div className="glass rounded-3xl p-6 shadow-2xl">
-        <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-          <Clock className="w-6 h-6 text-gray-600" /> سجل المواعيد ({past.length})
-        </h3>
-        {past.length === 0 ? <EmptyState icon="📋" message="لا توجد مواعيد سابقة" /> : (
-          <div className="space-y-3">
-            {past.map(apt => <AppointmentCard key={apt.id} apt={apt} onView={onView} />)}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ═══════════════════════════════════════════════════════════
-// 📅 Book Appointment - مع تقويم بصري وأوقات متاحة
-// ═══════════════════════════════════════════════════════════
-function BookAppointmentTab({ patient, clinic, onSuccess }) {
-  const [doctors, setDoctors] = useState([])
-  const [services, setServices] = useState([])
-  const [selectedDoctor, setSelectedDoctor] = useState('')
-  const [selectedDate, setSelectedDate] = useState('')
-  const [selectedTime, setSelectedTime] = useState('')
-  const [appointmentType, setAppointmentType] = useState('first_visit')
-  const [notes, setNotes] = useState('')
-  const [availableSlots, setAvailableSlots] = useState([])
-  const [busySlots, setBusySlots] = useState([])
-  const [doctorSchedule, setDoctorSchedule] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [currentMonth, setCurrentMonth] = useState(new Date())
-
-  useEffect(() => {
-    Promise.all([
-      supabase.from('doctors').select('*').eq('clinic_id', clinic.id).eq('is_active', true),
-      supabase.from('clinic_services').select('*').eq('clinic_id', clinic.id).eq('is_active', true)
-    ]).then(([d, s]) => {
-      setDoctors(d.data || [])
-      setServices(s.data || [])
+    const { data } = await supabase.from('clinics').select('*').order('created_at', { ascending: false })
+    setClinics(data || [])
+    setStats({
+      total: data?.length || 0,
+      active: data?.filter(c => c.subscription_status === 'active').length || 0,
+      trial: data?.filter(c => c.subscription_status === 'trial').length || 0,
+      expired: data?.filter(c => c.subscription_status === 'expired').length || 0,
     })
-  }, [])
 
-  useEffect(() => {
-    if (selectedDoctor) {
-      supabase.from('doctor_schedules').select('*').eq('doctor_id', selectedDoctor).then(({ data }) => {
-        setDoctorSchedule(data || [])
-      })
-    }
-  }, [selectedDoctor])
-
-  useEffect(() => {
-    if (selectedDoctor && selectedDate) {
-      computeAvailableSlots()
-    }
-  }, [selectedDoctor, selectedDate, doctorSchedule])
-
-  const computeAvailableSlots = async () => {
-    const dayOfWeek = new Date(selectedDate).getDay()
-    const schedule = doctorSchedule.find(s => s.day_of_week === dayOfWeek && s.is_available)
-
-    if (!schedule) { setAvailableSlots([]); return }
-
-    const slots = []
-    const start = schedule.start_time.split(':').map(Number)
-    const end = schedule.end_time.split(':').map(Number)
-    const doctor = doctors.find(d => d.id === selectedDoctor)
-    const slotDuration = doctor?.time_per_slot || 30
-
-    let current = new Date()
-    current.setHours(start[0], start[1], 0)
-    const endTime = new Date()
-    endTime.setHours(end[0], end[1], 0)
-
-    while (current < endTime) {
-      const h = String(current.getHours()).padStart(2, '0')
-      const m = String(current.getMinutes()).padStart(2, '0')
-      slots.push(`${h}:${m}`)
-      current.setMinutes(current.getMinutes() + slotDuration)
+    // تحميل إحصائيات كل عيادة
+    if (data && data.length > 0) {
+      const statsObj = {}
+      await Promise.all(data.map(async (c) => {
+        const [p, d, a, comp] = await Promise.all([
+          supabase.from('patients').select('id', { count: 'exact', head: true }).eq('clinic_id', c.id),
+          supabase.from('doctors').select('id', { count: 'exact', head: true }).eq('clinic_id', c.id),
+          supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('clinic_id', c.id),
+          supabase.from('complaints').select('id', { count: 'exact', head: true }).eq('clinic_id', c.id).eq('status', 'open'),
+        ])
+        statsObj[c.id] = {
+          patients: p.count || 0,
+          doctors: d.count || 0,
+          appointments: a.count || 0,
+          openComplaints: comp.count || 0,
+        }
+      }))
+      setClinicStats(statsObj)
     }
 
-    const { data: busy } = await supabase.from('appointments').select('appointment_time')
-      .eq('doctor_id', selectedDoctor).eq('appointment_date', selectedDate)
-      .neq('status', 'cancelled')
-
-    const busyTimes = (busy || []).map(b => b.appointment_time.substring(0, 5))
-    setBusySlots(busyTimes)
-    setAvailableSlots(slots)
-  }
-
-  const submit = async (e) => {
-    e.preventDefault()
-    if (!selectedDoctor || !selectedDate || !selectedTime) {
-      alert('⚠️ من فضلك اختار الطبيب والتاريخ والوقت'); return
-    }
-    setLoading(true)
-    const { error } = await supabase.from('appointments').insert([{
-      clinic_id: clinic.id, patient_id: patient.id, doctor_id: selectedDoctor,
-      appointment_date: selectedDate, appointment_time: selectedTime,
-      type: appointmentType, notes, status: 'pending'
-    }])
     setLoading(false)
-    if (!error) { setSuccess(true); setTimeout(() => onSuccess(), 1500) }
-    else alert('❌ ' + error.message)
   }
 
-  // إنشاء أيام الشهر للتقويم
-  const monthDays = []
-  const year = currentMonth.getFullYear()
-  const month = currentMonth.getMonth()
-  const firstDay = new Date(year, month, 1).getDay()
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const today = new Date(); today.setHours(0, 0, 0, 0)
-
-  for (let i = 0; i < firstDay; i++) monthDays.push(null)
-  for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(year, month, d)
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-    monthDays.push({ day: d, dateStr, isPast: date < today, isToday: date.getTime() === today.getTime() })
+  const deleteClinic = async (id) => {
+    if (!confirm('⚠️ هل تريد حذف هذه العيادة وكل بياناتها؟ لا يمكن التراجع!')) return
+    await supabase.from('clinics').delete().eq('id', id)
+    load()
   }
 
-  if (success) {
-    return (
-      <div className="glass rounded-3xl p-12 text-center shadow-2xl animate-fade-in">
-        <div className="text-7xl mb-4 animate-float">🎉</div>
-        <h2 className="text-3xl font-black text-gray-800 mb-2">تم الحجز بنجاح!</h2>
-        <p className="text-gray-600">سيتم تأكيد موعدك قريباً</p>
-      </div>
-    )
+  const updateStatus = async (id, status) => {
+    await supabase.from('clinics').update({ subscription_status: status }).eq('id', id)
+    load()
   }
-
-  const dayNames = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت']
 
   return (
-    <div className="space-y-5">
-      {/* اختيار الطبيب */}
-      <div className="glass rounded-3xl p-6 shadow-2xl">
-        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-          <Stethoscope className="w-5 h-5 text-indigo-600" /> 1. اختر الطبيب
-        </h3>
-        <div className="grid sm:grid-cols-2 gap-3">
-          {doctors.map(d => (
-            <button key={d.id} onClick={() => setSelectedDoctor(d.id)}
-              className={`p-4 rounded-2xl text-right transition ${selectedDoctor === d.id ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-xl scale-105' : 'bg-white/80 hover:bg-white border-2 border-gray-200'}`}>
-              <div className="flex items-center gap-3">
-                <div className="text-3xl">👨‍⚕️</div>
-                <div className="flex-1">
-                  <p className="font-bold">{d.name}</p>
-                  <p className={`text-xs ${selectedDoctor === d.id ? 'text-white/80' : 'text-gray-500'}`}>{d.specialization}</p>
-                </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-yellow-50 page-enter" dir="rtl">
+      <header className="bg-gradient-to-r from-gray-900 via-yellow-700 to-orange-800 shadow-2xl sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 py-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-yellow-500/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                <Crown className="w-6 h-6 text-yellow-300" />
               </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* التقويم */}
-      {selectedDoctor && (
-        <div className="glass rounded-3xl p-6 shadow-2xl">
-          <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-indigo-600" /> 2. اختر التاريخ
-          </h3>
-          <div className="flex items-center justify-between mb-4">
-            <button onClick={() => setCurrentMonth(new Date(year, month - 1, 1))} className="bg-white/80 hover:bg-white p-2 rounded-xl">
-              <ChevronRight className="w-5 h-5" />
-            </button>
-            <h4 className="font-bold text-gray-800">{currentMonth.toLocaleDateString('ar-EG', {month: 'long', year: 'numeric'})}</h4>
-            <button onClick={() => setCurrentMonth(new Date(year, month + 1, 1))} className="bg-white/80 hover:bg-white p-2 rounded-xl">
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="grid grid-cols-7 gap-1 mb-2 text-center text-xs font-bold text-gray-600">
-            {dayNames.map(d => <div key={d} className="py-2">{d}</div>)}
-          </div>
-          <div className="grid grid-cols-7 gap-1">
-            {monthDays.map((d, i) => (
-              <button key={i} disabled={!d || d.isPast}
-                onClick={() => { if (d) { setSelectedDate(d.dateStr); setSelectedTime('') } }}
-                className={`aspect-square rounded-xl text-sm font-bold transition ${
-                  !d ? '' :
-                  d.isPast ? 'bg-gray-100 text-gray-300 cursor-not-allowed' :
-                  selectedDate === d.dateStr ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg scale-110' :
-                  d.isToday ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' :
-                  'bg-white/80 hover:bg-white text-gray-700'
-                }`}>
-                {d?.day}
+              <div>
+                <h1 className="text-white font-black text-xl">👑 لوحة المالك</h1>
+                <p className="text-yellow-200/80 text-xs">{user.full_name || user.username}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link to="/" className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition text-sm">
+                <Home className="w-4 h-4" />
+                <span className="hidden sm:inline">الرئيسية</span>
+              </Link>
+              <button onClick={onLogout} className="bg-white/10 hover:bg-red-500/40 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition">
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline text-sm font-bold">خروج</span>
               </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* الأوقات المتاحة */}
-      {selectedDate && (
-        <div className="glass rounded-3xl p-6 shadow-2xl">
-          <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-indigo-600" /> 3. اختر الوقت المتاح
-          </h3>
-          {availableSlots.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="text-5xl mb-2">😔</div>
-              <p className="text-gray-700 font-bold">الطبيب غير متاح في هذا اليوم</p>
-              <p className="text-gray-500 text-sm">اختار يوم آخر</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-              {availableSlots.map(slot => {
-                const isBusy = busySlots.includes(slot)
-                return (
-                  <button key={slot} disabled={isBusy} onClick={() => setSelectedTime(slot)}
-                    className={`py-3 rounded-xl font-bold text-sm transition ${
-                      isBusy ? 'bg-red-50 text-red-300 cursor-not-allowed line-through' :
-                      selectedTime === slot ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg scale-105' :
-                      'bg-white/80 hover:bg-white text-gray-700 border border-gray-200'
-                    }`}>
-                    {slot}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* نوع الزيارة + الملاحظات */}
-      {selectedTime && (
-        <div className="glass rounded-3xl p-6 shadow-2xl animate-fade-in">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">4. نوع الزيارة</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-            {[
-              { val: 'first_visit', label: 'كشف أول', icon: '🆕' },
-              { val: 'follow_up', label: 'متابعة', icon: '🔄' },
-              { val: 'emergency', label: 'طوارئ', icon: '🚨' },
-              { val: 'consultation', label: 'استشارة', icon: '💬' },
-            ].map(t => (
-              <button key={t.val} type="button" onClick={() => setAppointmentType(t.val)}
-                className={`py-3 rounded-2xl font-bold text-sm transition ${appointmentType === t.val ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg scale-105' : 'bg-white/80 text-gray-700 border-2 border-gray-200'}`}>
-                <div>{t.icon}</div><div>{t.label}</div>
-              </button>
-            ))}
-          </div>
-
-          <Field label="ملاحظات (اختياري)" icon={<FileText className="w-5 h-5" />}>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="أي معلومات إضافية..." rows="3"
-              className="w-full pr-12 pl-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-indigo-500 input-glow outline-none transition font-medium resize-none" />
-          </Field>
-
-          {/* ملخص الحجز */}
-          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-2xl p-4 mt-4 mb-4">
-            <p className="text-sm font-bold text-gray-700 mb-2">📋 ملخص الحجز:</p>
-            <div className="grid sm:grid-cols-2 gap-2 text-sm">
-              <p>👨‍⚕️ <strong>{doctors.find(d => d.id === selectedDoctor)?.name}</strong></p>
-              <p>📅 <strong>{selectedDate}</strong></p>
-              <p>⏰ <strong>{selectedTime}</strong></p>
             </div>
           </div>
-
-          <button onClick={submit} disabled={loading}
-            className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-2xl btn-glow disabled:opacity-50 shadow-xl text-lg">
-            {loading ? '⏳ جاري الحجز...' : '🎯 تأكيد الحجز'}
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ═══════════════════════════════════════════════════════════
-// 📋 Appointment Details View - عرض كامل للموعد
-// ═══════════════════════════════════════════════════════════
-function AppointmentDetailsView({ apt, onClose, clinic }) {
-  const record = apt.medical_records?.[0]
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 page-enter" dir="rtl">
-      <header className="bg-gradient-to-r from-indigo-600 to-purple-600 shadow-2xl sticky top-0 z-40">
-        <div className="max-w-4xl mx-auto px-4 py-5 flex items-center justify-between">
-          <div>
-            <h1 className="text-white font-black text-xl">📋 تفاصيل الموعد</h1>
-            <p className="text-white/80 text-sm">{apt.appointment_date} • {apt.appointment_time}</p>
-          </div>
-          <button onClick={onClose} className="bg-white/20 hover:bg-white/30 text-white p-3 rounded-xl">
-            <X className="w-5 h-5" />
-          </button>
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-5">
-        {/* بيانات الموعد */}
-        <div className="bg-white rounded-3xl p-6 shadow-xl">
-          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Calendar className="w-6 h-6 text-indigo-600" /> بيانات الموعد
-          </h2>
-          <div className="grid sm:grid-cols-2 gap-3 text-sm">
-            <div className="bg-gray-50 rounded-xl p-3">
-              <p className="text-gray-500 text-xs">التاريخ</p>
-              <p className="font-bold text-gray-800">{apt.appointment_date}</p>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-3">
-              <p className="text-gray-500 text-xs">الوقت</p>
-              <p className="font-bold text-gray-800">{apt.appointment_time}</p>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-3">
-              <p className="text-gray-500 text-xs">الطبيب</p>
-              <p className="font-bold text-gray-800">{apt.doctors?.name}</p>
-              <p className="text-xs text-gray-500">{apt.doctors?.specialization}</p>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-3">
-              <p className="text-gray-500 text-xs">الحالة</p>
-              <p className="font-bold text-gray-800">
-                {apt.status === 'pending' ? '⏳ قيد التأكيد' :
-                 apt.status === 'confirmed' ? '✅ مؤكد' :
-                 apt.status === 'completed' ? '✔️ مكتمل' : '❌ ملغي'}
-              </p>
-            </div>
-          </div>
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+        {/* الإحصائيات الرئيسية */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <OwnerStat icon="🏥" label="إجمالي العيادات" value={stats.total} gradient="from-indigo-500 to-purple-600" />
+          <OwnerStat icon="✅" label="نشطة" value={stats.active} gradient="from-green-500 to-emerald-600" />
+          <OwnerStat icon="🕐" label="تجريبية" value={stats.trial} gradient="from-yellow-500 to-orange-600" />
+          <OwnerStat icon="❌" label="منتهية" value={stats.expired} gradient="from-red-500 to-pink-600" />
         </div>
 
-        {record ? (
-          <>
-            {/* التشخيص والعلاج */}
-            <div className="bg-white rounded-3xl p-6 shadow-xl">
-              <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <FileText className="w-6 h-6 text-blue-600" /> التشخيص والعلاج
-              </h2>
-              <div className="space-y-3">
-                {record.diagnosis && (
-                  <div className="bg-blue-50 border-r-4 border-blue-500 rounded-xl p-4">
-                    <p className="text-xs font-bold text-blue-700 mb-1">🔍 التشخيص</p>
-                    <p className="text-gray-800 whitespace-pre-wrap">{record.diagnosis}</p>
-                  </div>
-                )}
-                {record.treatment && (
-                  <div className="bg-green-50 border-r-4 border-green-500 rounded-xl p-4">
-                    <p className="text-xs font-bold text-green-700 mb-1">💉 العلاج المُقدّم</p>
-                    <p className="text-gray-800 whitespace-pre-wrap">{record.treatment}</p>
-                  </div>
-                )}
-                {record.prescription && (
-                  <div className="bg-pink-50 border-r-4 border-pink-500 rounded-xl p-4">
-                    <p className="text-xs font-bold text-pink-700 mb-1 flex items-center gap-1">
-                      <Pill className="w-4 h-4" /> الوصفة الطبية
-                    </p>
-                    <p className="text-gray-800 whitespace-pre-wrap">{record.prescription}</p>
-                  </div>
-                )}
-                {record.next_visit_notes && (
-                  <div className="bg-yellow-50 border-r-4 border-yellow-500 rounded-xl p-4">
-                    <p className="text-xs font-bold text-yellow-700 mb-1">📅 ملاحظات للزيارة القادمة</p>
-                    <p className="text-gray-800 whitespace-pre-wrap">{record.next_visit_notes}</p>
-                  </div>
-                )}
-              </div>
+        {/* أزرار */}
+        <div className="flex justify-end">
+          <button onClick={() => { setShowForm(!showForm); setEditingClinic(null) }}
+            className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-6 py-3 rounded-2xl font-bold shadow-xl btn-glow flex items-center gap-2">
+            <Plus className="w-5 h-5" /> {showForm ? 'إلغاء' : 'عيادة جديدة'}
+          </button>
+        </div>
+
+        {/* فورم إضافة/تعديل */}
+        {showForm && (
+          <ClinicForm
+            clinic={editingClinic}
+            onSuccess={() => { setShowForm(false); setEditingClinic(null); load() }}
+            onCancel={() => { setShowForm(false); setEditingClinic(null) }}
+          />
+        )}
+
+        {/* قائمة العيادات */}
+        <div className="space-y-4">
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-block w-16 h-16 border-4 border-yellow-200 border-t-yellow-600 rounded-full animate-spin"></div>
             </div>
-
-            {/* الفاتورة */}
-            {record.services_provided && record.services_provided.length > 0 && (
-              <div className="bg-white rounded-3xl p-6 shadow-xl">
-                <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <Receipt className="w-6 h-6 text-yellow-600" /> الفاتورة
-                </h2>
-
-                <div className="border-2 border-yellow-200 rounded-2xl overflow-hidden">
-                  <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 border-b border-yellow-200">
-                    <p className="font-bold text-gray-700 text-sm">{clinic?.name}</p>
-                    <p className="text-xs text-gray-500">{record.created_at?.substring(0, 10)}</p>
-                  </div>
-
-                  <div className="p-4">
-                    {record.services_provided.map((s, i) => (
-                      <div key={i} className="flex justify-between py-2 border-b border-gray-100">
-                        <span className="font-medium text-gray-800">{s.name} × {s.qty}</span>
-                        <span className="font-bold text-gray-700">{(s.price * s.qty).toFixed(0)} ر.س</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="p-4 bg-gray-50 space-y-1 text-sm">
-                    {parseFloat(record.discount) > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">الخصم:</span>
-                        <span className="text-red-600 font-bold">- {parseFloat(record.discount).toFixed(0)} ر.س</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-lg font-black border-t border-gray-300 pt-2">
-                      <span>الإجمالي:</span>
-                      <span className="text-orange-700">{parseFloat(record.total_amount).toFixed(0)} ر.س</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">المدفوع:</span>
-                      <span className="text-green-600 font-bold">{parseFloat(record.paid_amount).toFixed(0)} ر.س</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">المتبقي:</span>
-                      <span className="font-bold">{Math.max(0, parseFloat(record.total_amount) - parseFloat(record.paid_amount)).toFixed(0)} ر.س</span>
-                    </div>
-                  </div>
-
-                  <div className={`p-3 text-center font-bold text-white ${record.payment_status === 'paid' ? 'bg-green-500' : record.payment_status === 'partial' ? 'bg-yellow-500' : 'bg-red-500'}`}>
-                    {record.payment_status === 'paid' ? '✅ مدفوع بالكامل' : record.payment_status === 'partial' ? '🟡 مدفوع جزئياً' : '🔴 غير مدفوع'}
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="bg-white rounded-3xl p-12 text-center shadow-xl">
-            <div className="text-6xl mb-3">🩺</div>
-            <p className="text-gray-600 font-bold">لم يتم الكشف بعد</p>
-            <p className="text-gray-500 text-sm">سيظهر هنا التقرير الطبي بعد الكشف</p>
-          </div>
-        )}
-
-        {apt.notes && (
-          <div className="bg-white rounded-3xl p-6 shadow-xl">
-            <h2 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-gray-600" /> ملاحظاتك
-            </h2>
-            <p className="text-gray-700">{apt.notes}</p>
-          </div>
-        )}
+          ) : clinics.length === 0 ? (
+            <div className="bg-white rounded-3xl p-12 text-center shadow-xl">
+              <div className="text-6xl mb-3">🏥</div>
+              <p className="text-gray-600 font-bold text-lg">لا توجد عيادات بعد</p>
+              <p className="text-gray-500 text-sm mt-1">ابدأ بإضافة أول عيادة</p>
+            </div>
+          ) : clinics.map(clinic => (
+            <ClinicCard
+              key={clinic.id}
+              clinic={clinic}
+              stats={clinicStats[clinic.id] || {}}
+              onDelete={() => deleteClinic(clinic.id)}
+              onEdit={() => { setEditingClinic(clinic); setShowForm(true); window.scrollTo({top: 0, behavior: 'smooth'}) }}
+              onStatusChange={(status) => updateStatus(clinic.id, status)}
+            />
+          ))}
+        </div>
       </div>
     </div>
   )
 }
 
-// Complaints Tab
-function ComplaintsTab({ patient, clinic, complaints, onUpdate }) {
-  const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ subject: '', description: '' })
-  const [loading, setLoading] = useState(false)
+function OwnerStat({ icon, label, value, gradient }) {
+  return (
+    <div className={`bg-gradient-to-br ${gradient} text-white rounded-3xl p-6 shadow-xl card-hover`}>
+      <div className="text-3xl mb-2">{icon}</div>
+      <p className="text-4xl font-black">{value}</p>
+      <p className="text-white/80 text-sm font-medium mt-1">{label}</p>
+    </div>
+  )
+}
 
-  const submit = async (e) => {
-    e.preventDefault(); setLoading(true)
-    await supabase.from('complaints').insert([{
-      clinic_id: clinic.id, patient_id: patient.id, subject: form.subject, description: form.description, status: 'open'
-    }])
-    setLoading(false); setForm({ subject: '', description: '' }); setShowForm(false); onUpdate()
+function ClinicCard({ clinic, stats, onDelete, onEdit, onStatusChange }) {
+  const [copied, setCopied] = useState(false)
+
+  const clinicUrl = `${window.location.origin}/${clinic.slug}`
+  const staffUrl = `${window.location.origin}/${clinic.slug}/staff`
+
+  const copyLink = (link) => {
+    navigator.clipboard.writeText(link)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-2xl font-bold text-white">⚠️ الشكاوى</h3>
-        <button onClick={() => setShowForm(!showForm)} className="bg-gradient-to-r from-orange-500 to-red-600 text-white px-5 py-3 rounded-2xl font-bold shadow-xl btn-glow flex items-center gap-2">
-          <Plus className="w-5 h-5" /> {showForm ? 'إلغاء' : 'شكوى جديدة'}
+    <div className="bg-white rounded-3xl p-6 shadow-xl card-hover">
+      <div className="flex items-start justify-between flex-wrap gap-4 mb-5">
+        <div className="flex items-start gap-4 flex-1">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-4xl shadow-lg flex-shrink-0"
+            style={{background: `linear-gradient(135deg, ${clinic.primary_color || '#6366F1'}, ${clinic.primary_color || '#8B5CF6'}dd)`}}>
+            🏥
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <h3 className="text-2xl font-black text-gray-800">{clinic.name}</h3>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold ${clinic.subscription_status === 'active' ? 'bg-green-100 text-green-700' : clinic.subscription_status === 'trial' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                {clinic.subscription_status === 'active' ? '✅ نشط' : clinic.subscription_status === 'trial' ? '🕐 تجريبي' : '❌ منتهي'}
+              </span>
+            </div>
+            <p className="text-sm text-gray-500 mb-2">🔗 {clinic.slug}</p>
+
+            <div className="grid sm:grid-cols-2 gap-2 text-sm text-gray-700">
+              {clinic.phone && <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-gray-400" /> {clinic.phone}</div>}
+              {clinic.email && <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-gray-400" /> {clinic.email}</div>}
+              {clinic.address && <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-gray-400" /> {clinic.address}</div>}
+              <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-gray-400" /> {new Date(clinic.created_at).toLocaleDateString('ar-EG')}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 min-w-[160px]">
+          <select value={clinic.subscription_status} onChange={(e) => onStatusChange(e.target.value)}
+            className="px-3 py-2 border-2 border-gray-200 rounded-xl text-sm font-bold focus:border-indigo-500 outline-none">
+            <option value="trial">🕐 تجريبي</option>
+            <option value="active">✅ نشط</option>
+            <option value="expired">❌ منتهي</option>
+          </select>
+          <div className="flex gap-2">
+            <button onClick={onEdit} className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-1">
+              <Edit className="w-4 h-4" /> تعديل
+            </button>
+            <button onClick={onDelete} className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-1">
+              <Trash2 className="w-4 h-4" /> حذف
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* الإحصائيات */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5 pt-5 border-t border-gray-100">
+        <MiniStat icon="👥" label="مرضى" value={stats.patients || 0} color="text-blue-600" />
+        <MiniStat icon="👨‍⚕️" label="أطباء" value={stats.doctors || 0} color="text-green-600" />
+        <MiniStat icon="📅" label="مواعيد" value={stats.appointments || 0} color="text-purple-600" />
+        <MiniStat icon="⚠️" label="شكاوى" value={stats.openComplaints || 0} color="text-orange-600" />
+      </div>
+
+      {/* الروابط */}
+      <div className="pt-5 border-t border-gray-100 space-y-2">
+        <p className="text-xs font-bold text-gray-500 mb-2">🔗 روابط الوصول:</p>
+
+        <LinkRow label="👤 رابط المريض" url={clinicUrl} onCopy={() => copyLink(clinicUrl)} copied={copied} />
+        <LinkRow label="⚙️👨‍⚕️ رابط الموظفين" url={staffUrl} onCopy={() => copyLink(staffUrl)} copied={copied} />
+      </div>
+    </div>
+  )
+}
+
+function MiniStat({ icon, label, value, color }) {
+  return (
+    <div className="bg-gray-50 rounded-2xl p-3 text-center">
+      <div className="text-2xl mb-1">{icon}</div>
+      <p className={`text-2xl font-black ${color}`}>{value}</p>
+      <p className="text-xs text-gray-600 font-medium">{label}</p>
+    </div>
+  )
+}
+
+function LinkRow({ label, url, onCopy, copied }) {
+  return (
+    <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-2 flex-wrap">
+      <span className="text-sm font-bold text-gray-700 min-w-[140px]">{label}</span>
+      <code className="flex-1 text-xs text-gray-600 bg-white px-2 py-1 rounded truncate min-w-[200px]">{url}</code>
+      <button onClick={onCopy} className="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 p-2 rounded-lg" title="نسخ">
+        {copied ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+      </button>
+      <a href={url} target="_blank" rel="noopener noreferrer" className="bg-green-100 hover:bg-green-200 text-green-700 p-2 rounded-lg" title="فتح">
+        <ExternalLink className="w-4 h-4" />
+      </a>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════
+// 📝 فورم إضافة/تعديل العيادة
+// ═══════════════════════════════════════════════════════════
+function ClinicForm({ clinic, onSuccess, onCancel }) {
+  const isEditing = !!clinic
+  const [form, setForm] = useState({
+    name: clinic?.name || '',
+    slug: clinic?.slug || '',
+    phone: clinic?.phone || '',
+    whatsapp: clinic?.whatsapp || '',
+    email: clinic?.email || '',
+    address: clinic?.address || '',
+    primary_color: clinic?.primary_color || '#6366F1',
+    subscription_status: clinic?.subscription_status || 'trial',
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  // توليد الـ slug تلقائياً من الاسم
+  const generateSlug = (name) => {
+    const transliterate = name
+      .toLowerCase()
+      .replace(/[\u0600-\u06FF]/g, c => {
+        const map = {'ا':'a','ب':'b','ت':'t','ث':'th','ج':'g','ح':'h','خ':'kh','د':'d','ذ':'th','ر':'r','ز':'z','س':'s','ش':'sh','ص':'s','ض':'d','ط':'t','ظ':'z','ع':'a','غ':'gh','ف':'f','ق':'q','ك':'k','ل':'l','م':'m','ن':'n','ه':'h','و':'w','ي':'y','ة':'h','ى':'a','ء':'','أ':'a','إ':'a','آ':'a','ؤ':'o','ئ':'e'}
+        return map[c] || ''
+      })
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .substring(0, 30)
+    return transliterate + '-' + Math.random().toString(36).substring(2, 5)
+  }
+
+  const handleNameChange = (name) => {
+    setForm(prev => ({
+      ...prev,
+      name,
+      slug: !isEditing && !prev.slug ? generateSlug(name) : prev.slug
+    }))
+  }
+
+  const submit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+
+    try {
+      if (isEditing) {
+        const { error: err } = await supabase
+          .from('clinics').update(form).eq('id', clinic.id)
+        if (err) throw err
+        onSuccess()
+      } else {
+        // إنشاء جديد
+        const { data: newClinic, error: err } = await supabase
+          .from('clinics').insert([form]).select().single()
+        if (err) throw err
+
+        // إنشاء أدمن افتراضي
+        await supabase.from('admin_users').insert([{
+          clinic_id: newClinic.id,
+          username: 'admin',
+          password: 'admin123',
+          full_name: 'مدير العيادة',
+          role: 'clinic_admin'
+        }])
+
+        // إنشاء دكتور افتراضي
+        await supabase.from('doctors').insert([{
+          clinic_id: newClinic.id,
+          name: 'د. مثال',
+          specialization: 'عام',
+          username: 'doctor',
+          password: '123456'
+        }])
+
+        onSuccess()
+        alert(`✅ تم إنشاء العيادة بنجاح!\n\n🔗 رابط العيادة:\n${window.location.origin}/${newClinic.slug}\n\n🔐 بيانات الدخول الافتراضية:\n⚙️ admin / admin123\n👨‍⚕️ doctor / 123456`)
+      }
+    } catch (err) {
+      console.error(err)
+      setError('❌ ' + (err.message || 'حصل خطأ'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-3xl p-6 shadow-xl animate-slide-up border-2 border-yellow-200">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+          <Sparkles className="w-6 h-6 text-yellow-500" />
+          {isEditing ? 'تعديل العيادة' : 'إضافة عيادة جديدة'}
+        </h3>
+        <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100">
+          <X className="w-5 h-5" />
         </button>
       </div>
 
-      {showForm && (
-        <div className="glass rounded-3xl p-6 shadow-2xl animate-slide-up">
-          <form onSubmit={submit} className="space-y-4">
-            <Field label="الموضوع *" icon={<FileText className="w-5 h-5" />}>
-              <input type="text" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="ملخص الشكوى" required
-                className="w-full pr-12 pl-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-orange-500 input-glow outline-none transition font-medium" />
-            </Field>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">التفاصيل *</label>
-              <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="اشرح المشكلة..." rows="4" required
-                className="w-full px-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-orange-500 input-glow outline-none transition font-medium resize-none" />
-            </div>
-            <button type="submit" disabled={loading} className="w-full py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold rounded-2xl btn-glow shadow-xl">
-              {loading ? '⏳ جاري الإرسال...' : '📤 إرسال الشكوى'}
-            </button>
-          </form>
+      <form onSubmit={submit} className="grid md:grid-cols-2 gap-4">
+        <div className="md:col-span-2">
+          <label className="block text-sm font-bold text-gray-700 mb-1">اسم العيادة *</label>
+          <input required value={form.name} onChange={(e) => handleNameChange(e.target.value)}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-yellow-500 outline-none" />
         </div>
-      )}
 
-      <div className="glass rounded-3xl p-6 shadow-2xl">
-        {complaints.length === 0 ? <EmptyState icon="✨" message="لا توجد شكاوى" /> : (
-          <div className="space-y-3">
-            {complaints.map(c => (
-              <div key={c.id} className="bg-white/60 rounded-2xl p-5 border border-white/40">
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="font-bold text-gray-800 text-lg">{c.subject}</h4>
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${c.status === 'open' ? 'bg-red-100 text-red-700' : c.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
-                    {c.status === 'open' ? '🔴 مفتوحة' : c.status === 'in_progress' ? '🟡 قيد المعالجة' : '🟢 تم حلها'}
-                  </span>
-                </div>
-                <p className="text-gray-600 text-sm">{c.description}</p>
-                {c.response && (
-                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-xl">
-                    <p className="text-xs font-bold text-green-700 mb-1">رد العيادة:</p>
-                    <p className="text-sm text-green-800">{c.response}</p>
-                  </div>
-                )}
-              </div>
-            ))}
+        <div className="md:col-span-2">
+          <label className="block text-sm font-bold text-gray-700 mb-1">🔗 الرابط (slug) - رابط العيادة *</label>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500 text-sm whitespace-nowrap">{window.location.origin}/</span>
+            <input required value={form.slug} onChange={(e) => setForm({...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})}
+              placeholder="smile-clinic"
+              className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-yellow-500 outline-none font-mono" />
+          </div>
+          <p className="text-xs text-gray-500 mt-1">حروف إنجليزية صغيرة وأرقام وشرطات فقط</p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-1">📞 رقم الهاتف</label>
+          <input value={form.phone} onChange={(e) => setForm({...form, phone: e.target.value})}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-yellow-500 outline-none" />
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-1">📱 واتساب</label>
+          <input value={form.whatsapp} onChange={(e) => setForm({...form, whatsapp: e.target.value})}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-yellow-500 outline-none" />
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-1">📧 البريد الإلكتروني</label>
+          <input type="email" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-yellow-500 outline-none" />
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-1">🎨 اللون الأساسي</label>
+          <div className="flex items-center gap-2 px-3 py-2 border-2 border-gray-200 rounded-xl">
+            <input type="color" value={form.primary_color} onChange={(e) => setForm({...form, primary_color: e.target.value})}
+              className="w-12 h-10 rounded cursor-pointer" />
+            <input value={form.primary_color} onChange={(e) => setForm({...form, primary_color: e.target.value})}
+              className="flex-1 outline-none font-mono text-sm" />
+          </div>
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-bold text-gray-700 mb-1">📍 العنوان</label>
+          <input value={form.address} onChange={(e) => setForm({...form, address: e.target.value})}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-yellow-500 outline-none" />
+        </div>
+
+        {isEditing && (
+          <div className="md:col-span-2">
+            <label className="block text-sm font-bold text-gray-700 mb-1">💎 حالة الاشتراك</label>
+            <select value={form.subscription_status} onChange={(e) => setForm({...form, subscription_status: e.target.value})}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-yellow-500 outline-none">
+              <option value="trial">🕐 تجريبي</option>
+              <option value="active">✅ نشط</option>
+              <option value="expired">❌ منتهي</option>
+            </select>
           </div>
         )}
-      </div>
-    </div>
-  )
-}
 
-// Profile Tab
-function ProfileTab({ patient, clinic, setPatient }) {
-  const [form, setForm] = useState({
-    name: patient.name || '', phone: patient.phone || '', blood_type: patient.blood_type || '',
-    allergies: patient.allergies || '', medical_notes: patient.medical_notes || '',
-  })
-  const [passwordForm, setPasswordForm] = useState({ current: '', new: '', confirm: '' })
-  const [loading, setLoading] = useState(false)
-  const [savedMsg, setSavedMsg] = useState('')
-
-  const saveProfile = async (e) => {
-    e.preventDefault(); setLoading(true)
-    const { data, error } = await supabase.from('patients').update(form).eq('id', patient.id).select().single()
-    setLoading(false)
-    if (!error) {
-      const updated = { ...data, clinics: clinic }
-      setPatient(updated); localStorage.setItem(`patient_session_${clinic.id}`, JSON.stringify(updated))
-      setSavedMsg('✅ تم الحفظ بنجاح'); setTimeout(() => setSavedMsg(''), 3000)
-    }
-  }
-
-  const changePassword = async (e) => {
-    e.preventDefault()
-    if (passwordForm.current !== patient.password) { alert('❌ كلمة المرور الحالية غير صحيحة'); return }
-    if (passwordForm.new !== passwordForm.confirm) { alert('❌ كلمتا المرور غير متطابقتين'); return }
-    if (passwordForm.new.length < 4) { alert('❌ كلمة المرور يجب 4 أحرف على الأقل'); return }
-    setLoading(true)
-    const { data, error } = await supabase.from('patients').update({ password: passwordForm.new }).eq('id', patient.id).select().single()
-    setLoading(false)
-    if (!error) {
-      const updated = { ...data, clinics: clinic }
-      setPatient(updated); localStorage.setItem(`patient_session_${clinic.id}`, JSON.stringify(updated))
-      setPasswordForm({ current: '', new: '', confirm: '' }); alert('✅ تم تغيير كلمة المرور بنجاح')
-    }
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="glass rounded-3xl p-6 shadow-2xl">
-        <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-          <User className="w-6 h-6 text-indigo-600" /> بياناتي الشخصية
-        </h3>
-        <form onSubmit={saveProfile} className="space-y-4">
-          <Field label="الاسم" icon={<User className="w-5 h-5" />}>
-            <input type="text" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})}
-              className="w-full pr-12 pl-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-indigo-500 input-glow outline-none transition font-medium" />
-          </Field>
-          <Field label="رقم الجوال" icon={<Phone className="w-5 h-5" />}>
-            <input type="tel" value={form.phone} onChange={(e) => setForm({...form, phone: e.target.value})}
-              className="w-full pr-12 pl-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-indigo-500 input-glow outline-none transition font-medium" />
-          </Field>
-          <Field label="فصيلة الدم" icon={<Heart className="w-5 h-5" />}>
-            <select value={form.blood_type} onChange={(e) => setForm({...form, blood_type: e.target.value})}
-              className="w-full pr-12 pl-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-indigo-500 input-glow outline-none transition font-medium">
-              <option value="">غير محدد</option>
-              <option value="A+">A+</option><option value="A-">A-</option>
-              <option value="B+">B+</option><option value="B-">B-</option>
-              <option value="AB+">AB+</option><option value="AB-">AB-</option>
-              <option value="O+">O+</option><option value="O-">O-</option>
-            </select>
-          </Field>
-          <Field label="الحساسيات" icon={<AlertCircle className="w-5 h-5" />}>
-            <input type="text" value={form.allergies} onChange={(e) => setForm({...form, allergies: e.target.value})}
-              className="w-full pr-12 pl-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-indigo-500 input-glow outline-none transition font-medium" />
-          </Field>
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">ملاحظات طبية</label>
-            <textarea value={form.medical_notes} onChange={(e) => setForm({...form, medical_notes: e.target.value})} rows="3"
-              className="w-full px-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-indigo-500 input-glow outline-none transition font-medium resize-none" />
+        {error && (
+          <div className="md:col-span-2 bg-red-50 border-2 border-red-200 text-red-700 p-4 rounded-2xl text-sm font-medium animate-fade-in">
+            {error}
           </div>
-          {savedMsg && <div className="bg-green-50 border-2 border-green-200 text-green-700 p-4 rounded-2xl font-bold animate-fade-in">{savedMsg}</div>}
-          <button type="submit" disabled={loading} className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-2xl btn-glow disabled:opacity-50 shadow-xl">
-            {loading ? '⏳ جاري الحفظ...' : '💾 حفظ التعديلات'}
-          </button>
-        </form>
-      </div>
+        )}
 
-      <div className="glass rounded-3xl p-6 shadow-2xl">
-        <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-          <Lock className="w-6 h-6 text-pink-600" /> تغيير كلمة المرور
-        </h3>
-        <form onSubmit={changePassword} className="space-y-4">
-          <Field label="كلمة المرور الحالية" icon={<Lock className="w-5 h-5" />}>
-            <input type="password" value={passwordForm.current} onChange={(e) => setPasswordForm({...passwordForm, current: e.target.value})} required
-              className="w-full pr-12 pl-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-pink-500 input-glow outline-none transition font-medium" />
-          </Field>
-          <Field label="كلمة المرور الجديدة" icon={<Lock className="w-5 h-5" />}>
-            <input type="password" value={passwordForm.new} onChange={(e) => setPasswordForm({...passwordForm, new: e.target.value})} required
-              className="w-full pr-12 pl-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-pink-500 input-glow outline-none transition font-medium" />
-          </Field>
-          <Field label="تأكيد كلمة المرور" icon={<Lock className="w-5 h-5" />}>
-            <input type="password" value={passwordForm.confirm} onChange={(e) => setPasswordForm({...passwordForm, confirm: e.target.value})} required
-              className="w-full pr-12 pl-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-pink-500 input-glow outline-none transition font-medium" />
-          </Field>
-          <button type="submit" disabled={loading} className="w-full py-4 bg-gradient-to-r from-pink-600 to-rose-600 text-white font-bold rounded-2xl btn-glow disabled:opacity-50 shadow-xl">
-            🔒 تغيير كلمة المرور
-          </button>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-function EmptyState({ icon, message }) {
-  return (
-    <div className="text-center py-12">
-      <div className="text-6xl mb-3 animate-float">{icon}</div>
-      <p className="text-gray-600 font-medium">{message}</p>
+        <button type="submit" disabled={loading}
+          className="md:col-span-2 py-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-xl font-bold shadow-xl btn-glow disabled:opacity-50 flex items-center justify-center gap-2">
+          {loading ? '⏳ جاري الحفظ...' : isEditing ? <><Save className="w-5 h-5" /> حفظ التعديلات</> : <><Sparkles className="w-5 h-5" /> إنشاء العيادة</>}
+        </button>
+      </form>
     </div>
   )
 }
