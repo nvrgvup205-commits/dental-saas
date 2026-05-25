@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import {
-  User, Lock, Phone, IdCard, Calendar, Heart, AlertCircle,
+  User, Lock, Phone, CreditCard, Calendar, Heart, AlertCircle,
   LogOut, Plus, CheckCircle, XCircle, Clock, FileText,
   ArrowLeft, ArrowRight, Sparkles, Stethoscope, Activity,
   ShieldCheck, Settings, Eye, EyeOff
