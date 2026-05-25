@@ -66,48 +66,52 @@ function StaffLogin({ onSuccess }) {
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
 
-  const handleLogin = async (e) => {
+    const handleLogin = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
     try {
       if (userType === 'admin') {
-        const { data } = await supabase
+        const { data, error: err } = await supabase
           .from('admin_users')
           .select('*, clinics(*)')
-          .eq('username', credentials.username)
+          .eq('username', credentials.username.trim())
           .eq('password', credentials.password)
           .in('role', ['clinic_admin', 'super_admin'])
-          .maybeSingle()
+          .limit(1)
 
-        if (data) {
-          onSuccess(data, data.clinics, 'admin')
+        if (err) { console.error(err); setError('❌ خطأ في الاتصال'); setLoading(false); return }
+
+        if (data && data.length > 0) {
+          onSuccess(data[0], data[0].clinics, 'admin')
         } else {
           setError('❌ بيانات الدخول غير صحيحة')
         }
       } else {
-        const { data } = await supabase
+        const { data, error: err } = await supabase
           .from('doctors')
           .select('*, clinics(*)')
-          .eq('username', credentials.username)
+          .eq('username', credentials.username.trim())
           .eq('password', credentials.password)
-          .maybeSingle()
+          .limit(1)
 
-        if (data) {
-          onSuccess(data, data.clinics, 'doctor')
+        if (err) { console.error(err); setError('❌ خطأ في الاتصال'); setLoading(false); return }
+
+        if (data && data.length > 0) {
+          onSuccess(data[0], data[0].clinics, 'doctor')
         } else {
           setError('❌ بيانات الدخول غير صحيحة')
         }
       }
     } catch (err) {
+      console.error(err)
       setError('❌ حصل خطأ، حاول مرة أخرى')
     } finally {
       setLoading(false)
     }
   }
-
-  return (
+      return (
     <div className="min-h-screen flex items-center justify-center p-4 page-enter">
       <div className="w-full max-w-md">
         {/* Logo */}
