@@ -276,6 +276,7 @@ function AdminDashboard({ user, clinic, onLogout }) {
               { id: 'doctors', label: 'الأطباء', icon: '👨‍⚕️' },
               { id: 'appointments', label: 'المواعيد', icon: '📅' },
               { id: 'services', label: 'الخدمات', icon: '💼' },
+              { id: 'schedules', label: 'جداول الأطباء', icon: '⏰' },
               { id: 'complaints', label: 'الشكاوى', icon: '⚠️' },
             ].map(t => (
               <button key={t.id} onClick={() => setTab(t.id)}
@@ -294,6 +295,7 @@ function AdminDashboard({ user, clinic, onLogout }) {
         {tab === 'doctors' && <DoctorsTab doctors={doctors} clinic={clinic} onUpdate={loadAll} />}
         {tab === 'appointments' && <AppointmentsManageTab appointments={appointments} onUpdate={loadAll} />}
         {tab === 'services' && <ServicesTab services={services} clinic={clinic} onUpdate={loadAll} />}
+        {tab === 'schedules' && <SchedulesManageTab doctors={doctors} clinic={clinic} />}
         {tab === 'complaints' && <ComplaintsManageTab complaints={complaints} onUpdate={loadAll} />}
       </div>
     </div>
@@ -940,6 +942,228 @@ function ComplaintsManageTab({ complaints, onUpdate }) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// ⏰ Schedules Management - إدارة جداول الأطباء (للأدمن)
+// ═══════════════════════════════════════════════════════════
+function SchedulesManageTab({ doctors, clinic }) {
+  const [selectedDoctor, setSelectedDoctor] = useState(null)
+  const [schedules, setSchedules] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [savedMsg, setSavedMsg] = useState('')
+  const [timePerSlot, setTimePerSlot] = useState(30)
+
+  const dayNames = [
+    { num: 6, name: 'السبت', short: 'سبت' },
+    { num: 0, name: 'الأحد', short: 'أحد' },
+    { num: 1, name: 'الإثنين', short: 'إثنين' },
+    { num: 2, name: 'الثلاثاء', short: 'ثلاثاء' },
+    { num: 3, name: 'الأربعاء', short: 'أربعاء' },
+    { num: 4, name: 'الخميس', short: 'خميس' },
+    { num: 5, name: 'الجمعة', short: 'جمعة' },
+  ]
+
+  useEffect(() => {
+    if (selectedDoctor) loadSchedules()
+  }, [selectedDoctor])
+
+  const loadSchedules = async () => {
+    setLoading(true)
+    const { data } = await supabase.from('doctor_schedules')
+      .select('*').eq('doctor_id', selectedDoctor.id).order('day_of_week')
+    setSchedules(data || [])
+    setTimePerSlot(selectedDoctor.time_per_slot || 30)
+    setLoading(false)
+  }
+
+  const toggleDay = (dayNum) => {
+    const existing = schedules.find(s => s.day_of_week === dayNum)
+    if (existing) {
+      setSchedules(schedules.filter(s => s.day_of_week !== dayNum))
+    } else {
+      setSchedules([...schedules, {
+        clinic_id: clinic.id, doctor_id: selectedDoctor.id,
+        day_of_week: dayNum, start_time: '09:00', end_time: '21:00',
+        is_available: true, _new: true
+      }])
+    }
+  }
+
+  const updateTime = (dayNum, field, value) => {
+    setSchedules(schedules.map(s => s.day_of_week === dayNum ? {...s, [field]: value} : s))
+  }
+
+  const saveAll = async () => {
+    setLoading(true)
+    // امسح الجدول القديم
+    await supabase.from('doctor_schedules').delete().eq('doctor_id', selectedDoctor.id)
+
+    // ضيف الجديد
+    if (schedules.length > 0) {
+      const toInsert = schedules.map(s => ({
+        clinic_id: clinic.id, doctor_id: selectedDoctor.id,
+        day_of_week: s.day_of_week,
+        start_time: s.start_time, end_time: s.end_time,
+        is_available: true
+      }))
+      await supabase.from('doctor_schedules').insert(toInsert)
+    }
+
+    // حدّث time_per_slot
+    await supabase.from('doctors').update({ time_per_slot: parseInt(timePerSlot) }).eq('id', selectedDoctor.id)
+
+    setLoading(false)
+    setSavedMsg('✅ تم الحفظ بنجاح')
+    setTimeout(() => setSavedMsg(''), 3000)
+  }
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-3xl font-black text-gray-800">⏰ إدارة جداول الأطباء</h2>
+
+      {/* اختيار الطبيب */}
+      <div className="bg-white rounded-3xl p-6 shadow-xl">
+        <h3 className="font-bold text-gray-800 mb-3">اختر طبيب لتعديل جدوله:</h3>
+        {doctors.length === 0 ? (
+          <p className="text-gray-500 text-center py-6">⚠️ لا يوجد أطباء. أضف أطباء أولاً.</p>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {doctors.map(d => (
+              <button key={d.id} onClick={() => setSelectedDoctor(d)}
+                className={`p-4 rounded-2xl text-right transition ${
+                  selectedDoctor?.id === d.id ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-xl scale-105' :
+                  'bg-gray-50 hover:bg-indigo-50 border-2 border-gray-200'
+                }`}>
+                <div className="flex items-center gap-3">
+                  <div className="text-3xl">👨‍⚕️</div>
+                  <div>
+                    <p className="font-bold">{d.name}</p>
+                    <p className={`text-xs ${selectedDoctor?.id === d.id ? 'text-white/80' : 'text-gray-500'}`}>{d.specialization}</p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* تعديل الجدول */}
+      {selectedDoctor && (
+        <ScheduleEditor
+          doctor={selectedDoctor}
+          schedules={schedules}
+          timePerSlot={timePerSlot}
+          setTimePerSlot={setTimePerSlot}
+          dayNames={dayNames}
+          onToggleDay={toggleDay}
+          onUpdateTime={updateTime}
+          onSave={saveAll}
+          loading={loading}
+          savedMsg={savedMsg}
+        />
+      )}
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════
+// 📅 Schedule Editor (مشترك بين الأدمن والدكتور)
+// ═══════════════════════════════════════════════════════════
+function ScheduleEditor({ doctor, schedules, timePerSlot, setTimePerSlot, dayNames, onToggleDay, onUpdateTime, onSave, loading, savedMsg }) {
+  return (
+    <div className="bg-white rounded-3xl p-6 shadow-xl animate-slide-up">
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
+        <h3 className="text-xl font-black text-gray-800 flex items-center gap-2">
+          <Clock className="w-6 h-6 text-indigo-600" />
+          جدول عمل {doctor.name}
+        </h3>
+        {savedMsg && (
+          <div className="bg-green-50 border-2 border-green-200 text-green-700 px-4 py-2 rounded-xl font-bold animate-fade-in">
+            {savedMsg}
+          </div>
+        )}
+      </div>
+
+      {/* مدة الموعد */}
+      <div className="bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-4 mb-6">
+        <label className="block text-sm font-bold text-indigo-900 mb-2">⏱️ مدة الموعد الواحد:</label>
+        <div className="grid grid-cols-5 gap-2">
+          {[15, 20, 30, 45, 60].map(m => (
+            <button key={m} onClick={() => setTimePerSlot(m)}
+              className={`py-3 rounded-xl font-bold transition ${
+                timePerSlot === m ? 'bg-indigo-600 text-white shadow-lg scale-105' :
+                'bg-white text-gray-700 border-2 border-gray-200 hover:border-indigo-400'
+              }`}>
+              {m} د
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* أيام العمل */}
+      <div className="space-y-3 mb-6">
+        <p className="font-bold text-gray-700 mb-2">📆 اختر أيام العمل وحدد ساعاتها:</p>
+        {dayNames.map(day => {
+          const schedule = schedules.find(s => s.day_of_week === day.num)
+          const isWorking = !!schedule
+          return (
+            <div key={day.num} className={`border-2 rounded-2xl p-4 transition ${
+              isWorking ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-gray-50'
+            }`}>
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <button onClick={() => onToggleDay(day.num)}
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition ${
+                      isWorking ? 'bg-green-500 text-white shadow-lg' : 'bg-white border-2 border-gray-300 text-gray-400'
+                    }`}>
+                    {isWorking ? '✓' : '○'}
+                  </button>
+                  <div>
+                    <p className="font-bold text-gray-800">{day.name}</p>
+                    <p className={`text-xs ${isWorking ? 'text-green-700' : 'text-gray-500'}`}>
+                      {isWorking ? 'يوم عمل' : 'إجازة'}
+                    </p>
+                  </div>
+                </div>
+
+                {isWorking && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col">
+                      <label className="text-xs text-gray-600 mb-1">من</label>
+                      <input type="time" value={schedule.start_time?.substring(0,5)}
+                        onChange={(e) => onUpdateTime(day.num, 'start_time', e.target.value)}
+                        className="px-3 py-2 border-2 border-gray-200 rounded-xl focus:border-green-500 outline-none font-bold" />
+                    </div>
+                    <div className="flex flex-col">
+                      <label className="text-xs text-gray-600 mb-1">إلى</label>
+                      <input type="time" value={schedule.end_time?.substring(0,5)}
+                        onChange={(e) => onUpdateTime(day.num, 'end_time', e.target.value)}
+                        className="px-3 py-2 border-2 border-gray-200 rounded-xl focus:border-green-500 outline-none font-bold" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* الإحصائية */}
+      {schedules.length > 0 && (
+        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-4 mb-4 text-sm">
+          <p className="font-bold text-indigo-900">
+            ✅ {schedules.length} أيام عمل • ⏱️ مدة الموعد {timePerSlot} دقيقة
+          </p>
+        </div>
+      )}
+
+      <button onClick={onSave} disabled={loading}
+        className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-black rounded-2xl btn-glow disabled:opacity-50 shadow-2xl text-lg">
+        {loading ? '⏳ جاري الحفظ...' : '💾 حفظ الجدول'}
+      </button>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════
 // 👨‍⚕️ Doctor Dashboard - مع أدوات متقدمة (تشخيص + وصفة + إكمال)
 // ═══════════════════════════════════════════════════════════
 function DoctorDashboard({ user, clinic, onLogout }) {
@@ -949,6 +1173,7 @@ function DoctorDashboard({ user, clinic, onLogout }) {
   const [filter, setFilter] = useState('all')
   const [loading, setLoading] = useState(true)
   const [examiningApt, setExaminingApt] = useState(null)
+  const [doctorTab, setDoctorTab] = useState('patients') // patients | schedule
 
   useEffect(() => { load() }, [])
 
@@ -997,9 +1222,26 @@ function DoctorDashboard({ user, clinic, onLogout }) {
               <span className="hidden sm:inline text-sm font-bold">خروج</span>
             </button>
           </div>
+
+          {/* Tabs */}
+          <div className="flex gap-2 mt-5 overflow-x-auto pb-1">
+            <button onClick={() => setDoctorTab('patients')}
+              className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap transition ${doctorTab === 'patients' ? 'bg-white text-green-600 shadow-lg' : 'text-white/80 hover:bg-white/10'}`}>
+              👥 المرضى
+            </button>
+            <button onClick={() => setDoctorTab('schedule')}
+              className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap transition ${doctorTab === 'schedule' ? 'bg-white text-green-600 shadow-lg' : 'text-white/80 hover:bg-white/10'}`}>
+              ⏰ جدول عملي
+            </button>
+          </div>
         </div>
       </header>
 
+      {doctorTab === 'schedule' ? (
+        <div className="max-w-7xl mx-auto p-4 sm:p-6">
+          <DoctorScheduleTab doctor={user} clinic={clinic} />
+        </div>
+      ) : (
       <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <BigStat icon="🆕" label="كشف أول" value={firstVisits.length} gradient="from-red-500 to-pink-600" onClick={() => setFilter('first_visit')} />
@@ -1071,6 +1313,107 @@ function DoctorDashboard({ user, clinic, onLogout }) {
           )}
         </div>
       </div>
+      )}
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════
+// ⏰ تبويب جدول الدكتور (يديره بنفسه)
+// ═══════════════════════════════════════════════════════════
+function DoctorScheduleTab({ doctor, clinic }) {
+  const [schedules, setSchedules] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [savedMsg, setSavedMsg] = useState('')
+  const [timePerSlot, setTimePerSlot] = useState(doctor.time_per_slot || 30)
+  const [showFirstTimeMsg, setShowFirstTimeMsg] = useState(false)
+
+  const dayNames = [
+    { num: 6, name: 'السبت', short: 'سبت' },
+    { num: 0, name: 'الأحد', short: 'أحد' },
+    { num: 1, name: 'الإثنين', short: 'إثنين' },
+    { num: 2, name: 'الثلاثاء', short: 'ثلاثاء' },
+    { num: 3, name: 'الأربعاء', short: 'أربعاء' },
+    { num: 4, name: 'الخميس', short: 'خميس' },
+    { num: 5, name: 'الجمعة', short: 'جمعة' },
+  ]
+
+  useEffect(() => { load() }, [])
+
+  const load = async () => {
+    setLoading(true)
+    const { data } = await supabase.from('doctor_schedules')
+      .select('*').eq('doctor_id', doctor.id).order('day_of_week')
+    setSchedules(data || [])
+    if (!data || data.length === 0) setShowFirstTimeMsg(true)
+    setLoading(false)
+  }
+
+  const toggleDay = (dayNum) => {
+    const existing = schedules.find(s => s.day_of_week === dayNum)
+    if (existing) {
+      setSchedules(schedules.filter(s => s.day_of_week !== dayNum))
+    } else {
+      setSchedules([...schedules, {
+        clinic_id: clinic.id, doctor_id: doctor.id,
+        day_of_week: dayNum, start_time: '09:00', end_time: '21:00',
+        is_available: true, _new: true
+      }])
+    }
+  }
+
+  const updateTime = (dayNum, field, value) => {
+    setSchedules(schedules.map(s => s.day_of_week === dayNum ? {...s, [field]: value} : s))
+  }
+
+  const saveAll = async () => {
+    setLoading(true)
+    await supabase.from('doctor_schedules').delete().eq('doctor_id', doctor.id)
+    if (schedules.length > 0) {
+      const toInsert = schedules.map(s => ({
+        clinic_id: clinic.id, doctor_id: doctor.id,
+        day_of_week: s.day_of_week,
+        start_time: s.start_time, end_time: s.end_time,
+        is_available: true
+      }))
+      await supabase.from('doctor_schedules').insert(toInsert)
+    }
+    await supabase.from('doctors').update({ time_per_slot: parseInt(timePerSlot) }).eq('id', doctor.id)
+    setLoading(false)
+    setShowFirstTimeMsg(false)
+    setSavedMsg('✅ تم الحفظ بنجاح')
+    setTimeout(() => setSavedMsg(''), 3000)
+  }
+
+  return (
+    <div className="space-y-6">
+      {showFirstTimeMsg && (
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-3xl p-6 shadow-xl animate-fade-in">
+          <div className="flex items-start gap-3">
+            <div className="text-4xl">👋</div>
+            <div>
+              <h3 className="text-xl font-black text-orange-900 mb-2">أهلاً بك يا دكتور!</h3>
+              <p className="text-orange-800">
+                لازم تحدد <strong>جدول مواعيدك</strong> أولاً عشان المرضى يقدروا يحجزوا.
+                <br/>اختار أيام عملك وحدد ساعاتها بالأسفل ⬇️
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ScheduleEditor
+        doctor={doctor}
+        schedules={schedules}
+        timePerSlot={timePerSlot}
+        setTimePerSlot={setTimePerSlot}
+        dayNames={dayNames}
+        onToggleDay={toggleDay}
+        onUpdateTime={updateTime}
+        onSave={saveAll}
+        loading={loading}
+        savedMsg={savedMsg}
+      />
     </div>
   )
 }
