@@ -430,7 +430,7 @@ function RegisterScreen({ onBack, onSuccess, onLogin }) {
                 />
               </Field>
 
-              <Field label="رقم الهوية / الإقامة" icon={<IdCard className="w-5 h-5" />}>
+              <Field label="رقم الهوية / الإقامة" icon={<CreditCard className="w-5 h-5" />}>
                 <input
                   type="text"
                   value={form.national_id}
