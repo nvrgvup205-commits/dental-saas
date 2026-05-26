@@ -992,27 +992,34 @@ function SchedulesManageTab({ doctors, clinic }) {
   }
 
   const saveAll = async () => {
+    if (schedules.length === 0) {
+      alert('⚠️ اختار يوم واحد على الأقل من أيام العمل')
+      return
+    }
     setLoading(true)
-    // امسح الجدول القديم
-    await supabase.from('doctor_schedules').delete().eq('doctor_id', selectedDoctor.id)
 
-    // ضيف الجديد
-    if (schedules.length > 0) {
-      const toInsert = schedules.map(s => ({
-        clinic_id: clinic.id, doctor_id: selectedDoctor.id,
-        day_of_week: s.day_of_week,
-        start_time: s.start_time, end_time: s.end_time,
-        is_available: true
-      }))
-      await supabase.from('doctor_schedules').insert(toInsert)
+    const { error: delErr } = await supabase.from('doctor_schedules').delete().eq('doctor_id', selectedDoctor.id)
+    if (delErr) {
+      setLoading(false); alert('❌ ' + delErr.message); return
     }
 
-    // حدّث time_per_slot
+    const toInsert = schedules.map(s => ({
+      clinic_id: clinic.id, doctor_id: selectedDoctor.id,
+      day_of_week: s.day_of_week,
+      start_time: s.start_time, end_time: s.end_time,
+      is_available: true
+    }))
+    const { data: inserted, error: insErr } = await supabase.from('doctor_schedules').insert(toInsert).select()
+    if (insErr) {
+      setLoading(false); alert('❌ ' + insErr.message); return
+    }
+
     await supabase.from('doctors').update({ time_per_slot: parseInt(timePerSlot) }).eq('id', selectedDoctor.id)
 
+    setSchedules(inserted || [])
     setLoading(false)
-    setSavedMsg('✅ تم الحفظ بنجاح')
-    setTimeout(() => setSavedMsg(''), 3000)
+    setSavedMsg(`✅ تم حفظ ${inserted?.length || 0} أيام عمل`)
+    setTimeout(() => setSavedMsg(''), 5000)
   }
 
   return (
@@ -1367,22 +1374,44 @@ function DoctorScheduleTab({ doctor, clinic }) {
   }
 
   const saveAll = async () => {
-    setLoading(true)
-    await supabase.from('doctor_schedules').delete().eq('doctor_id', doctor.id)
-    if (schedules.length > 0) {
-      const toInsert = schedules.map(s => ({
-        clinic_id: clinic.id, doctor_id: doctor.id,
-        day_of_week: s.day_of_week,
-        start_time: s.start_time, end_time: s.end_time,
-        is_available: true
-      }))
-      await supabase.from('doctor_schedules').insert(toInsert)
+    if (schedules.length === 0) {
+      alert('⚠️ من فضلك اختار يوم واحد على الأقل من أيام العمل')
+      return
     }
+    setLoading(true)
+
+    // 1) مسح القديم
+    const { error: delErr } = await supabase.from('doctor_schedules').delete().eq('doctor_id', doctor.id)
+    if (delErr) {
+      setLoading(false)
+      alert('❌ خطأ في مسح الجدول القديم: ' + delErr.message)
+      return
+    }
+
+    // 2) إضافة الجديد
+    const toInsert = schedules.map(s => ({
+      clinic_id: clinic.id, doctor_id: doctor.id,
+      day_of_week: s.day_of_week,
+      start_time: s.start_time, end_time: s.end_time,
+      is_available: true
+    }))
+    const { data: inserted, error: insErr } = await supabase.from('doctor_schedules').insert(toInsert).select()
+    if (insErr) {
+      setLoading(false)
+      alert('❌ خطأ في الحفظ: ' + insErr.message)
+      console.error('Insert error:', insErr)
+      return
+    }
+
+    // 3) تحديث مدة الموعد
     await supabase.from('doctors').update({ time_per_slot: parseInt(timePerSlot) }).eq('id', doctor.id)
-    setLoading(false)
+
+    // 4) إعادة تحميل البيانات للتأكد
+    setSchedules(inserted || [])
     setShowFirstTimeMsg(false)
-    setSavedMsg('✅ تم الحفظ بنجاح')
-    setTimeout(() => setSavedMsg(''), 3000)
+    setLoading(false)
+    setSavedMsg(`✅ تم حفظ ${inserted?.length || 0} أيام عمل بنجاح`)
+    setTimeout(() => setSavedMsg(''), 5000)
   }
 
   return (
