@@ -435,10 +435,16 @@ function Dashboard({ patient, clinic, onLogout, setPatient }) {
               <p className="text-white/70 text-xs">{clinic?.name}</p>
             </div>
           </div>
-          <button onClick={onLogout} className="bg-white/10 hover:bg-red-500/30 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition">
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline text-sm font-medium">خروج</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <Link to={`/${clinic.slug}/about`} className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-xl flex items-center gap-1 transition" title="عن العيادة">
+              <Info className="w-4 h-4" />
+              <span className="hidden sm:inline text-sm font-medium">عن العيادة</span>
+            </Link>
+            <button onClick={onLogout} className="bg-white/10 hover:bg-red-500/30 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition">
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline text-sm font-medium">خروج</span>
+            </button>
+          </div>
         </div>
 
         <div className="max-w-6xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
@@ -658,7 +664,24 @@ function BookAppointmentTab({ patient, clinic, onSuccess }) {
 
   const computeAvailableSlots = async () => {
     const dayOfWeek = new Date(selectedDate).getDay()
-    const schedule = doctorSchedule.find(s => s.day_of_week === dayOfWeek && s.is_available)
+
+    // 1) جرّب جدول الدكتور المخصص
+    let schedule = doctorSchedule.find(s => s.day_of_week === dayOfWeek && s.is_available)
+
+    // 2) لو مفيش جدول مخصص، استخدم ساعات العيادة
+    if (!schedule) {
+      // تأكد إن اليوم من أيام عمل العيادة
+      const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+      const dayKey = dayNames[dayOfWeek]
+      const workingDays = clinic.working_days || ['sat', 'sun', 'mon', 'tue', 'wed', 'thu']
+
+      if (workingDays.includes(dayKey)) {
+        schedule = {
+          start_time: clinic.working_hours_start || '09:00:00',
+          end_time: clinic.working_hours_end || '21:00:00'
+        }
+      }
+    }
 
     if (!schedule) { setAvailableSlots([]); return }
 
@@ -669,14 +692,22 @@ function BookAppointmentTab({ patient, clinic, onSuccess }) {
     const slotDuration = doctor?.time_per_slot || 30
 
     let current = new Date()
-    current.setHours(start[0], start[1], 0)
+    current.setHours(start[0], start[1] || 0, 0)
     const endTime = new Date()
-    endTime.setHours(end[0], end[1], 0)
+    endTime.setHours(end[0], end[1] || 0, 0)
+
+    // لو التاريخ هو اليوم، استبعد الأوقات اللي فاتت
+    const now = new Date()
+    const today = now.toISOString().split('T')[0]
+    const isToday = selectedDate === today
 
     while (current < endTime) {
       const h = String(current.getHours()).padStart(2, '0')
       const m = String(current.getMinutes()).padStart(2, '0')
-      slots.push(`${h}:${m}`)
+
+      if (!isToday || current > now) {
+        slots.push(`${h}:${m}`)
+      }
       current.setMinutes(current.getMinutes() + slotDuration)
     }
 
@@ -695,14 +726,39 @@ function BookAppointmentTab({ patient, clinic, onSuccess }) {
       alert('⚠️ من فضلك اختار الطبيب والتاريخ والوقت'); return
     }
     setLoading(true)
+
+    // إعادة التحقق من الوقت قبل الحجز (حماية ضد Race Condition)
+    const { data: conflict } = await supabase.from('appointments').select('id')
+      .eq('doctor_id', selectedDoctor)
+      .eq('appointment_date', selectedDate)
+      .eq('appointment_time', selectedTime)
+      .neq('status', 'cancelled')
+      .limit(1)
+
+    if (conflict && conflict.length > 0) {
+      setLoading(false)
+      alert('❌ عذراً! تم حجز هذا الوقت من قِبل مريض آخر للتو.\nمن فضلك اختار وقت آخر.')
+      await computeAvailableSlots() // تحديث الأوقات المتاحة
+      setSelectedTime('')
+      return
+    }
+
     const { error } = await supabase.from('appointments').insert([{
       clinic_id: clinic.id, patient_id: patient.id, doctor_id: selectedDoctor,
       appointment_date: selectedDate, appointment_time: selectedTime,
       type: appointmentType, notes, status: 'pending'
     }])
     setLoading(false)
+
     if (!error) { setSuccess(true); setTimeout(() => onSuccess(), 1500) }
-    else alert('❌ ' + error.message)
+    else if (error.code === '23505') {
+      // duplicate key error from Postgres
+      alert('❌ هذا الوقت محجوز بالفعل. من فضلك اختار وقت آخر.')
+      await computeAvailableSlots()
+      setSelectedTime('')
+    } else {
+      alert('❌ ' + error.message)
+    }
   }
 
   // إنشاء أيام الشهر للتقويم
@@ -731,90 +787,183 @@ function BookAppointmentTab({ patient, clinic, onSuccess }) {
   }
 
   const dayNames = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت']
+  const selectedDoctorObj = doctors.find(d => d.id === selectedDoctor)
 
   return (
-    <div className="space-y-5">
-      {/* اختيار الطبيب */}
-      <div className="glass rounded-3xl p-6 shadow-2xl">
-        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-          <Stethoscope className="w-5 h-5 text-indigo-600" /> 1. اختر الطبيب
-        </h3>
-        <div className="grid sm:grid-cols-2 gap-3">
-          {doctors.map(d => (
-            <button key={d.id} onClick={() => setSelectedDoctor(d.id)}
-              className={`p-4 rounded-2xl text-right transition ${selectedDoctor === d.id ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-xl scale-105' : 'bg-white/80 hover:bg-white border-2 border-gray-200'}`}>
-              <div className="flex items-center gap-3">
-                <div className="text-3xl">👨‍⚕️</div>
-                <div className="flex-1">
-                  <p className="font-bold">{d.name}</p>
-                  <p className={`text-xs ${selectedDoctor === d.id ? 'text-white/80' : 'text-gray-500'}`}>{d.specialization}</p>
+    <div className="max-w-3xl mx-auto space-y-4">
+      {/* عنوان الصفحة */}
+      <div className="glass rounded-3xl p-6 shadow-2xl text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-xl mb-3">
+          <Calendar className="w-8 h-8 text-white" />
+        </div>
+        <h2 className="text-2xl font-black text-gray-800">احجز موعدك</h2>
+        <p className="text-gray-600 text-sm mt-1">في 3 خطوات بسيطة</p>
+      </div>
+
+      {/* مؤشر الخطوات */}
+      <div className="glass rounded-2xl p-4 shadow-xl">
+        <div className="flex items-center justify-between">
+          {[
+            { num: 1, label: 'الطبيب', done: !!selectedDoctor },
+            { num: 2, label: 'التاريخ', done: !!selectedDate },
+            { num: 3, label: 'الوقت', done: !!selectedTime },
+          ].map((s, i, arr) => (
+            <div key={s.num} className="flex items-center flex-1">
+              <div className={`flex flex-col items-center ${i < arr.length - 1 ? 'flex-1' : ''}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
+                  s.done ? 'bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg scale-110' :
+                  'bg-gray-200 text-gray-500'
+                }`}>
+                  {s.done ? <CheckCircle className="w-5 h-5" /> : s.num}
                 </div>
+                <span className={`text-xs font-bold mt-1 ${s.done ? 'text-green-600' : 'text-gray-500'}`}>{s.label}</span>
               </div>
-            </button>
+              {i < arr.length - 1 && (
+                <div className={`h-1 flex-1 mx-2 rounded-full transition-all ${
+                  arr[i + 1].done || s.done ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gray-200'
+                }`}></div>
+              )}
+            </div>
           ))}
         </div>
       </div>
 
-      {/* التقويم */}
+      {/* الخطوة 1: اختيار الطبيب */}
+      <div className="glass rounded-3xl p-6 shadow-2xl">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-black shadow-lg">1</div>
+          <div>
+            <h3 className="text-lg font-bold text-gray-800">اختر الطبيب</h3>
+            <p className="text-xs text-gray-500">{doctors.length} {doctors.length === 1 ? 'طبيب متاح' : 'أطباء متاحين'}</p>
+          </div>
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-3">
+          {doctors.map(d => {
+            const isSelected = selectedDoctor === d.id
+            return (
+              <button key={d.id} onClick={() => { setSelectedDoctor(d.id); setSelectedDate(''); setSelectedTime('') }}
+                className={`relative p-4 rounded-2xl text-right transition-all duration-300 ${
+                  isSelected ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-2xl scale-[1.02] ring-4 ring-indigo-200' :
+                  'bg-white hover:bg-indigo-50 border-2 border-gray-100 hover:border-indigo-300 hover:shadow-lg'
+                }`}>
+                {isSelected && (
+                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                    <CheckCircle className="w-4 h-4 text-white" />
+                  </div>
+                )}
+                <div className="flex items-center gap-3">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl ${
+                    isSelected ? 'bg-white/20' : 'bg-gradient-to-br from-indigo-100 to-purple-100'
+                  }`}>👨‍⚕️</div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-bold ${isSelected ? 'text-white' : 'text-gray-800'}`}>{d.name}</p>
+                    <p className={`text-xs ${isSelected ? 'text-white/80' : 'text-gray-500'}`}>{d.specialization || 'طبيب عام'}</p>
+                  </div>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* الخطوة 2: التقويم */}
       {selectedDoctor && (
-        <div className="glass rounded-3xl p-6 shadow-2xl">
-          <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-indigo-600" /> 2. اختر التاريخ
-          </h3>
-          <div className="flex items-center justify-between mb-4">
-            <button onClick={() => setCurrentMonth(new Date(year, month - 1, 1))} className="bg-white/80 hover:bg-white p-2 rounded-xl">
-              <ChevronRight className="w-5 h-5" />
+        <div className="glass rounded-3xl p-6 shadow-2xl animate-slide-up">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl flex items-center justify-center text-white font-black shadow-lg">2</div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">اختر التاريخ</h3>
+              <p className="text-xs text-gray-500">من التقويم بالأسفل</p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mb-4 bg-gradient-to-r from-pink-50 to-rose-50 rounded-2xl p-3">
+            <button onClick={() => setCurrentMonth(new Date(year, month - 1, 1))}
+              className="bg-white hover:bg-pink-100 p-2 rounded-xl shadow-sm transition">
+              <ChevronRight className="w-5 h-5 text-pink-600" />
             </button>
-            <h4 className="font-bold text-gray-800">{currentMonth.toLocaleDateString('ar-EG', {month: 'long', year: 'numeric'})}</h4>
-            <button onClick={() => setCurrentMonth(new Date(year, month + 1, 1))} className="bg-white/80 hover:bg-white p-2 rounded-xl">
-              <ChevronLeft className="w-5 h-5" />
+            <h4 className="font-black text-gray-800 text-lg">
+              {currentMonth.toLocaleDateString('ar-EG', {month: 'long', year: 'numeric'})}
+            </h4>
+            <button onClick={() => setCurrentMonth(new Date(year, month + 1, 1))}
+              className="bg-white hover:bg-pink-100 p-2 rounded-xl shadow-sm transition">
+              <ChevronLeft className="w-5 h-5 text-pink-600" />
             </button>
           </div>
-          <div className="grid grid-cols-7 gap-1 mb-2 text-center text-xs font-bold text-gray-600">
+
+          <div className="grid grid-cols-7 gap-1 mb-2 text-center text-xs font-bold text-gray-500">
             {dayNames.map(d => <div key={d} className="py-2">{d}</div>)}
           </div>
-          <div className="grid grid-cols-7 gap-1">
+
+          <div className="grid grid-cols-7 gap-1.5">
             {monthDays.map((d, i) => (
               <button key={i} disabled={!d || d.isPast}
                 onClick={() => { if (d) { setSelectedDate(d.dateStr); setSelectedTime('') } }}
-                className={`aspect-square rounded-xl text-sm font-bold transition ${
-                  !d ? '' :
-                  d.isPast ? 'bg-gray-100 text-gray-300 cursor-not-allowed' :
-                  selectedDate === d.dateStr ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg scale-110' :
-                  d.isToday ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' :
-                  'bg-white/80 hover:bg-white text-gray-700'
+                className={`aspect-square rounded-xl text-sm font-bold transition-all ${
+                  !d ? 'invisible' :
+                  d.isPast ? 'bg-gray-50 text-gray-300 cursor-not-allowed' :
+                  selectedDate === d.dateStr ? 'bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-xl scale-110 ring-4 ring-pink-200' :
+                  d.isToday ? 'bg-gradient-to-br from-yellow-100 to-orange-100 text-orange-700 font-black border-2 border-orange-300 hover:scale-105' :
+                  'bg-white hover:bg-pink-50 text-gray-700 border border-gray-100 hover:border-pink-300 hover:scale-105 hover:shadow-md'
                 }`}>
                 {d?.day}
               </button>
             ))}
           </div>
+
+          <div className="flex items-center justify-center gap-4 mt-4 text-xs text-gray-500">
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-gradient-to-br from-yellow-100 to-orange-100 border border-orange-300 rounded"></div>
+              <span>اليوم</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-gradient-to-br from-pink-500 to-rose-600 rounded"></div>
+              <span>المختار</span>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* الأوقات المتاحة */}
+      {/* الخطوة 3: الأوقات المتاحة */}
       {selectedDate && (
-        <div className="glass rounded-3xl p-6 shadow-2xl">
-          <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-indigo-600" /> 3. اختر الوقت المتاح
-          </h3>
+        <div className="glass rounded-3xl p-6 shadow-2xl animate-slide-up">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center text-white font-black shadow-lg">3</div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">اختر الوقت</h3>
+              <p className="text-xs text-gray-500">
+                {availableSlots.length > 0
+                  ? `${availableSlots.filter(s => !busySlots.includes(s)).length} وقت متاح من ${availableSlots.length}`
+                  : 'لا توجد أوقات متاحة'}
+              </p>
+            </div>
+          </div>
+
           {availableSlots.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="text-5xl mb-2">😔</div>
-              <p className="text-gray-700 font-bold">الطبيب غير متاح في هذا اليوم</p>
-              <p className="text-gray-500 text-sm">اختار يوم آخر</p>
+            <div className="text-center py-12 bg-gray-50 rounded-2xl">
+              <div className="text-6xl mb-3">😔</div>
+              <p className="text-gray-700 font-bold mb-1">الطبيب غير متاح في هذا اليوم</p>
+              <p className="text-gray-500 text-sm">اختار يوم آخر من التقويم</p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
               {availableSlots.map(slot => {
                 const isBusy = busySlots.includes(slot)
+                const isSelected = selectedTime === slot
                 return (
                   <button key={slot} disabled={isBusy} onClick={() => setSelectedTime(slot)}
-                    className={`py-3 rounded-xl font-bold text-sm transition ${
-                      isBusy ? 'bg-red-50 text-red-300 cursor-not-allowed line-through' :
-                      selectedTime === slot ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg scale-105' :
-                      'bg-white/80 hover:bg-white text-gray-700 border border-gray-200'
+                    className={`relative py-3 rounded-xl font-bold text-sm transition-all ${
+                      isBusy ? 'bg-red-50 text-red-300 cursor-not-allowed line-through border border-red-100' :
+                      isSelected ? 'bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-xl scale-110 ring-4 ring-green-200' :
+                      'bg-white hover:bg-green-50 text-gray-700 border-2 border-gray-100 hover:border-green-300 hover:scale-105 hover:shadow-md'
                     }`}>
-                    {slot}
+                    {isSelected && (
+                      <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-white rounded-full flex items-center justify-center shadow">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                      </div>
+                    )}
+                    🕐 {slot}
                   </button>
                 )
               })}
@@ -823,49 +972,74 @@ function BookAppointmentTab({ patient, clinic, onSuccess }) {
         </div>
       )}
 
-      {/* نوع الزيارة + الملاحظات */}
+      {/* تفاصيل الحجز + التأكيد */}
       {selectedTime && (
         <div className="glass rounded-3xl p-6 shadow-2xl animate-fade-in">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">4. نوع الزيارة</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-            {[
-              { val: 'first_visit', label: 'كشف أول', icon: '🆕' },
-              { val: 'follow_up', label: 'متابعة', icon: '🔄' },
-              { val: 'emergency', label: 'طوارئ', icon: '🚨' },
-              { val: 'consultation', label: 'استشارة', icon: '💬' },
-            ].map(t => (
-              <button key={t.val} type="button" onClick={() => setAppointmentType(t.val)}
-                className={`py-3 rounded-2xl font-bold text-sm transition ${appointmentType === t.val ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg scale-105' : 'bg-white/80 text-gray-700 border-2 border-gray-200'}`}>
-                <div>{t.icon}</div><div>{t.label}</div>
-              </button>
-            ))}
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-yellow-500" />
+            تفاصيل إضافية
+          </h3>
+
+          <div className="mb-4">
+            <label className="block text-sm font-bold text-gray-700 mb-2">نوع الزيارة</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                { val: 'first_visit', label: 'كشف أول', icon: '🆕', color: 'from-blue-500 to-indigo-600' },
+                { val: 'follow_up', label: 'متابعة', icon: '🔄', color: 'from-green-500 to-emerald-600' },
+                { val: 'emergency', label: 'طوارئ', icon: '🚨', color: 'from-red-500 to-pink-600' },
+                { val: 'consultation', label: 'استشارة', icon: '💬', color: 'from-purple-500 to-pink-600' },
+              ].map(t => (
+                <button key={t.val} type="button" onClick={() => setAppointmentType(t.val)}
+                  className={`py-3 rounded-2xl font-bold text-sm transition-all ${
+                    appointmentType === t.val ? `bg-gradient-to-br ${t.color} text-white shadow-xl scale-105` :
+                    'bg-white text-gray-700 border-2 border-gray-200 hover:scale-105'
+                  }`}>
+                  <div className="text-2xl mb-1">{t.icon}</div>
+                  <div>{t.label}</div>
+                </button>
+              ))}
+            </div>
           </div>
 
           <Field label="ملاحظات (اختياري)" icon={<FileText className="w-5 h-5" />}>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="أي معلومات إضافية..." rows="3"
-              className="w-full pr-12 pl-4 py-4 bg-white/80 border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-indigo-500 input-glow outline-none transition font-medium resize-none" />
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="أي معلومات إضافية..." rows="2"
+              className="w-full pr-12 pl-4 py-3 bg-white border-2 border-gray-200 rounded-2xl text-gray-800 text-right focus:border-indigo-500 input-glow outline-none transition font-medium resize-none" />
           </Field>
 
           {/* ملخص الحجز */}
-          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-2xl p-4 mt-4 mb-4">
-            <p className="text-sm font-bold text-gray-700 mb-2">📋 ملخص الحجز:</p>
-            <div className="grid sm:grid-cols-2 gap-2 text-sm">
-              <p>👨‍⚕️ <strong>{doctors.find(d => d.id === selectedDoctor)?.name}</strong></p>
-              <p>📅 <strong>{selectedDate}</strong></p>
-              <p>⏰ <strong>{selectedTime}</strong></p>
+          <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-2 border-indigo-200 rounded-2xl p-5 mt-4 mb-4">
+            <p className="text-sm font-black text-indigo-700 mb-3 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5" />
+              ملخص الحجز
+            </p>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2 bg-white/60 rounded-xl p-2">
+                <Stethoscope className="w-4 h-4 text-indigo-600" />
+                <span className="text-gray-600">الطبيب:</span>
+                <strong className="text-gray-800">{selectedDoctorObj?.name}</strong>
+              </div>
+              <div className="flex items-center gap-2 bg-white/60 rounded-xl p-2">
+                <Calendar className="w-4 h-4 text-pink-600" />
+                <span className="text-gray-600">التاريخ:</span>
+                <strong className="text-gray-800">{new Date(selectedDate).toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+              </div>
+              <div className="flex items-center gap-2 bg-white/60 rounded-xl p-2">
+                <Clock className="w-4 h-4 text-green-600" />
+                <span className="text-gray-600">الوقت:</span>
+                <strong className="text-gray-800">{selectedTime}</strong>
+              </div>
             </div>
           </div>
 
           <button onClick={submit} disabled={loading}
-            className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-2xl btn-glow disabled:opacity-50 shadow-xl text-lg">
-            {loading ? '⏳ جاري الحجز...' : '🎯 تأكيد الحجز'}
+            className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-black rounded-2xl btn-glow disabled:opacity-50 shadow-2xl text-lg flex items-center justify-center gap-2">
+            {loading ? '⏳ جاري الحجز...' : <><CheckCircle className="w-6 h-6" /> تأكيد الحجز</>}
           </button>
         </div>
       )}
     </div>
   )
 }
-
 // ═══════════════════════════════════════════════════════════
 // 📋 Appointment Details View - عرض كامل للموعد
 // ═══════════════════════════════════════════════════════════
