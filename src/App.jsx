@@ -9,22 +9,11 @@ import NotFound from './pages/NotFound'
 function App() {
   return (
     <Routes>
-      {/* الصفحة الرئيسية - اختيار العيادة */}
       <Route path="/" element={<HomePage />} />
-
-      {/* صفحة المالك */}
       <Route path="/owner" element={<OwnerPortal />} />
-
-      {/* صفحة تعريفية للعيادة */}
       <Route path="/:clinicSlug/about" element={<ClinicInfo />} />
-
-      {/* بوابة الموظفين داخل عيادة معينة */}
       <Route path="/:clinicSlug/staff" element={<StaffPortal />} />
-
-      {/* بوابة المريض داخل عيادة معينة */}
       <Route path="/:clinicSlug" element={<PatientPortal />} />
-
-      {/* صفحة 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   )
