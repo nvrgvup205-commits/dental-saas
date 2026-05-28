@@ -1221,16 +1221,19 @@ function DoctorDashboard({ user, clinic, onLogout }) {
     setLoading(false)
   }
 
-  const filtered = appointments.filter(apt => {
+  // استبعاد المواعيد الملغية والمكتملة من العرض الافتراضي
+  const activeAppointments = appointments.filter(a => a.status !== 'cancelled')
+
+  const filtered = activeAppointments.filter(apt => {
     const matchSearch = !search || apt.patients?.name?.toLowerCase().includes(search.toLowerCase()) ||
       apt.patients?.phone?.includes(search) || apt.patients?.national_id?.includes(search)
     const matchFilter = filter === 'all' || apt.type === filter
     return matchSearch && matchFilter
   })
 
-  const firstVisits = appointments.filter(a => a.type === 'first_visit')
-  const emergencies = appointments.filter(a => a.type === 'emergency')
-  const followUps = appointments.filter(a => a.type === 'follow_up')
+  const firstVisits = activeAppointments.filter(a => a.type === 'first_visit')
+  const emergencies = activeAppointments.filter(a => a.type === 'emergency')
+  const followUps = activeAppointments.filter(a => a.type === 'follow_up')
 
   if (examiningApt) {
     return <ExaminationView apt={examiningApt} clinic={clinic} services={services} doctor={user} onClose={() => { setExaminingApt(null); load() }} />
