@@ -81,7 +81,7 @@ function OwnerLogin({ onSuccess }) {
               <label className="block text-sm font-bold text-sky-200 mb-2">اسم المستخدم</label>
               <div className="relative">
                 <User className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-sky-400/60" />
-                <input type="text" value={credentials.username} onChange={(e) => setCredentials({...credentials, username: e.target.value})} placeholder="owner" required
+                <input type="text" value={credentials.username} onChange={(e) => setCredentials({...credentials, username: e.target.value})} placeholder="1111" required
                   className="w-full pr-12 pl-4 py-4 bg-white/5 border-2 border-sky-500/30 rounded-2xl text-white placeholder-white/30 text-right focus:border-sky-400 outline-none transition font-medium" />
               </div>
             </div>
@@ -400,7 +400,7 @@ function ClinicForm({ clinic, onSuccess, onCancel }) {
         if (!newClinic) throw new Error('فشل إنشاء العيادة')
 
         const adminRow = {
-          clinic_id: newClinic.id, username: 'admin', password: 'admin123',
+          clinic_id: newClinic.id, username: '1111', password: '1111',
           full_name: 'مدير العيادة', role: 'clinic_admin'
         }
         let { error: adminErr } = await supabase.from('admin_users').insert([adminRow])
@@ -413,12 +413,12 @@ function ClinicForm({ clinic, onSuccess, onCancel }) {
 
         const { error: doctorErr } = await supabase.from('doctors').insert([{
           clinic_id: newClinic.id, name: 'د. مثال', specialization: 'عام',
-          username: 'doctor', password: '123456'
+          username: '1111', password: '1111'
         }])
         if (doctorErr) throw doctorErr
 
         onSuccess()
-        alert(`✓ تم إنشاء العيادة!\n\n🔗 ${window.location.origin}/${newClinic.slug}\n\n🔐 admin / admin123\n🔐 doctor / 123456`)
+        alert(`✓ تم إنشاء العيادة!\n\n🔗 ${window.location.origin}/${newClinic.slug}\n\n🔐 أدمن/دكتور: 1111 / 1111`)
       }
     } catch (err) { setError('❌ ' + (err.message || 'حصل خطأ')) }
     finally { setLoading(false) }

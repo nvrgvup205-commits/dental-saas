@@ -201,7 +201,7 @@ function LoginScreen({ clinic, onBack, onSuccess, onRegister }) {
               <label className="block text-sm font-bold text-slate-700 mb-2">رقم الجوال</label>
               <div className="relative">
                 <Phone className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="05xxxxxxxx" required disabled={loading}
+                <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="1111" required disabled={loading}
                   className="w-full pr-12 pl-4 py-4 bg-white border-2 border-slate-200 rounded-2xl text-slate-800 text-right input-medical outline-none transition font-medium" />
               </div>
             </div>

@@ -159,7 +159,7 @@ function StaffLogin({ clinic, onSuccess }) {
               <div className="relative">
                 <User className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
                 <input type="text" value={credentials.username} onChange={(e) => setCredentials({...credentials, username: e.target.value})}
-                  placeholder={userType === 'admin' ? 'admin' : 'doctor'} required
+                  placeholder="1111" required
                   className="w-full pr-12 pl-4 py-4 bg-white/10 border-2 border-white/20 rounded-2xl text-white placeholder-white/40 text-right focus:border-sky-400 outline-none transition font-medium" />
               </div>
             </div>
@@ -558,7 +558,7 @@ function PatientsTab({ patients, clinic }) {
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
-  const [form, setForm] = useState({ name: '', phone: '', national_id: '', gender: 'male', password: '123456' })
+  const [form, setForm] = useState({ name: '', phone: '', national_id: '', gender: 'male', password: '1111' })
 
   const filtered = patients.filter(p =>
     p.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -580,7 +580,7 @@ function PatientsTab({ patients, clinic }) {
       const { error } = await supabase.from('patients').insert([{ ...form, clinic_id: clinic.id }])
       if (error) return alert('❌ ' + error.message)
     }
-    setForm({ name: '', phone: '', national_id: '', gender: 'male', password: '123456' })
+    setForm({ name: '', phone: '', national_id: '', gender: 'male', password: '1111' })
     setShowForm(false); setEditing(null)
   }
 
@@ -593,7 +593,7 @@ function PatientsTab({ patients, clinic }) {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
         <h2 className="text-3xl font-black text-slate-800 flex items-center gap-2"><Users className="w-8 h-8 text-sky-600" /> المرضى</h2>
-        <button onClick={() => { setShowForm(!showForm); setEditing(null); setForm({ name: '', phone: '', national_id: '', gender: 'male', password: '123456' }) }}
+        <button onClick={() => { setShowForm(!showForm); setEditing(null); setForm({ name: '', phone: '', national_id: '', gender: 'male', password: '1111' }) }}
           className="gradient-medical text-white px-5 py-3 rounded-2xl font-bold shadow-xl btn-medical flex items-center gap-2">
           <Plus className="w-5 h-5" /> {showForm ? 'إلغاء' : 'مريض جديد'}
         </button>
@@ -659,7 +659,7 @@ function PatientsTab({ patients, clinic }) {
 function DoctorsTab({ doctors, clinic }) {
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
-  const [form, setForm] = useState({ name: '', specialization: '', phone: '', username: '', password: '123456', photo_url: '' })
+  const [form, setForm] = useState({ name: '', specialization: '', phone: '', username: '', password: '1111', photo_url: '' })
 
   const startEdit = (d) => {
     setEditing(d)
@@ -676,7 +676,7 @@ function DoctorsTab({ doctors, clinic }) {
       const { error } = await supabase.from('doctors').insert([{ ...form, clinic_id: clinic.id }])
       if (error) return alert('❌ ' + error.message)
     }
-    setForm({ name: '', specialization: '', phone: '', username: '', password: '123456', photo_url: '' })
+    setForm({ name: '', specialization: '', phone: '', username: '', password: '1111', photo_url: '' })
     setShowForm(false); setEditing(null)
   }
 
@@ -689,7 +689,7 @@ function DoctorsTab({ doctors, clinic }) {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
         <h2 className="text-3xl font-black text-slate-800 flex items-center gap-2"><Stethoscope className="w-8 h-8 text-emerald-600" /> الأطباء</h2>
-        <button onClick={() => { setShowForm(!showForm); setEditing(null); setForm({ name: '', specialization: '', phone: '', username: '', password: '123456', photo_url: '' }) }}
+        <button onClick={() => { setShowForm(!showForm); setEditing(null); setForm({ name: '', specialization: '', phone: '', username: '', password: '1111', photo_url: '' }) }}
           className="gradient-success text-white px-5 py-3 rounded-2xl font-bold shadow-xl btn-medical flex items-center gap-2">
           <Plus className="w-5 h-5" /> {showForm ? 'إلغاء' : 'طبيب جديد'}
         </button>
