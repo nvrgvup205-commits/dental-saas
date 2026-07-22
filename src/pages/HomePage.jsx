@@ -25,14 +25,24 @@ export default function HomePage() {
         البوابة
       </Link>
 
-      {/* زر المالك (تاج صغير) */}
-      <Link
-        to="/owner"
-        className="fixed top-6 left-6 z-50 w-12 h-12 bg-white/80 hover:bg-sky-100 backdrop-blur-xl rounded-full border-2 border-sky-200 hover:border-sky-400 flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-lg group"
-        title="دخول المالك"
-      >
-        <Lock className="w-5 h-5 text-sky-600 group-hover:text-sky-700" />
-      </Link>
+      {/* قفل المالك + تسجيل عيادة (تجربة 14 يوم) */}
+      <div className="fixed top-6 left-6 z-50 flex items-center gap-2">
+        <Link
+          to="/owner"
+          className="w-12 h-12 bg-white/80 hover:bg-sky-100 backdrop-blur-xl rounded-full border-2 border-sky-200 hover:border-sky-400 flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-lg group"
+          title="دخول المالك"
+        >
+          <Lock className="w-5 h-5 text-sky-600 group-hover:text-sky-700" />
+        </Link>
+        <Link
+          to="/dental/signup"
+          className="h-12 px-4 bg-gradient-to-l from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600 text-white backdrop-blur-xl rounded-full border-2 border-sky-300/50 flex items-center gap-2 transition-all duration-300 hover:scale-105 shadow-lg font-black text-sm"
+          title="سجّل عيادتك — تجربة 14 يوم"
+        >
+          <Sparkles className="w-4 h-4" />
+          سجّل عيادتك
+        </Link>
+      </div>
 
       <div className="relative z-10">
         {/* Hero Section */}
@@ -74,13 +84,13 @@ export default function HomePage() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10 animate-slide-up" style={{animationDelay: '0.3s'}}>
-              <a href="#features" className="group gradient-medical text-white font-black px-8 py-4 rounded-2xl shadow-xl btn-medical flex items-center justify-center gap-2">
+              <Link to="/dental/signup" className="group gradient-medical text-white font-black px-8 py-4 rounded-2xl shadow-xl btn-medical flex items-center justify-center gap-2">
                 <Sparkles className="w-5 h-5" />
+                <span>سجّل عيادتك الآن</span>
+              </Link>
+              <a href="#features" className="bg-white hover:bg-sky-50 text-slate-700 font-bold px-8 py-4 rounded-2xl border-2 border-sky-200 hover:border-sky-400 shadow-lg btn-medical flex items-center justify-center gap-2">
+                <Award className="w-5 h-5" />
                 <span>اكتشف المميزات</span>
-              </a>
-              <a href="#contact" className="bg-white hover:bg-sky-50 text-slate-700 font-bold px-8 py-4 rounded-2xl border-2 border-sky-200 hover:border-sky-400 shadow-lg btn-medical flex items-center justify-center gap-2">
-                <Phone className="w-5 h-5" />
-                <span>تواصل معنا</span>
               </a>
             </div>
 

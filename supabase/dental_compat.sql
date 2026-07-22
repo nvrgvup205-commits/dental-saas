@@ -14,6 +14,9 @@
 ALTER TABLE public.clinics
   ADD COLUMN IF NOT EXISTS about text;
 
+ALTER TABLE public.clinics
+  ADD COLUMN IF NOT EXISTS trial_ends_at timestamptz;
+
 ALTER TABLE public.admin_users
   ADD COLUMN IF NOT EXISTS full_name text;
 
