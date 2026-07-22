@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, Navigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useRealtime } from '../lib/useRealtime'
+import { isReservedSlug } from '../lib/reservedSlugs'
 import LiveBadge from '../components/LiveBadge'
 import {
   User, Lock, Phone, CreditCard, Calendar, Heart, AlertCircle,
@@ -18,7 +19,17 @@ export default function PatientPortal() {
   const [view, setView] = useState('welcome')
   const [currentPatient, setCurrentPatient] = useState(null)
 
-  useEffect(() => { loadClinic() }, [clinicSlug])
+  useEffect(() => {
+    if (isReservedSlug(clinicSlug)) return
+    loadClinic()
+  }, [clinicSlug])
+
+  if (isReservedSlug(clinicSlug)) {
+    if (String(clinicSlug).toLowerCase() === 'restaurants') {
+      return <Navigate to="/restaurants" replace />
+    }
+    return <Navigate to="/" replace />
+  }
 
   const loadClinic = async () => {
     setClinicLoading(true)

@@ -6,6 +6,7 @@ import PatientPortal from './pages/PatientPortal'
 import StaffPortal from './pages/StaffPortal'
 import OwnerPortal from './pages/OwnerPortal'
 import NotFound from './pages/NotFound'
+import HardNavigate from './pages/HardNavigate'
 
 function App() {
   return (
@@ -13,6 +14,9 @@ function App() {
       <Route path="/" element={<SystemsHub />} />
       <Route path="/dental" element={<HomePage />} />
       <Route path="/owner" element={<OwnerPortal />} />
+      {/* Full page load so Worker proxies the restaurants signup landing */}
+      <Route path="/restaurants" element={<HardNavigate to="/restaurants" />} />
+      <Route path="/restaurants/" element={<HardNavigate to="/restaurants" />} />
       <Route path="/:clinicSlug/about" element={<ClinicInfo />} />
       <Route path="/:clinicSlug/staff" element={<StaffPortal />} />
       <Route path="/:clinicSlug" element={<PatientPortal />} />

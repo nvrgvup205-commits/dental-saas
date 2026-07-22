@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, Navigate } from 'react-router-dom'
 import { supabase, uploadImage } from '../lib/supabase'
 import { useRealtime } from '../lib/useRealtime'
+import { isReservedSlug } from '../lib/reservedSlugs'
 import LiveBadge from '../components/LiveBadge'
 import ImageUpload from '../components/ImageUpload'
 import {
@@ -20,7 +21,14 @@ export default function StaffPortal() {
   const [view, setView] = useState('login')
   const [user, setUser] = useState(null)
 
-  useEffect(() => { loadClinic() }, [clinicSlug])
+  useEffect(() => {
+    if (isReservedSlug(clinicSlug)) return
+    loadClinic()
+  }, [clinicSlug])
+
+  if (isReservedSlug(clinicSlug)) {
+    return <Navigate to={String(clinicSlug).toLowerCase() === 'restaurants' ? '/restaurants' : '/'} replace />
+  }
 
   const loadClinic = async () => {
     setClinicLoading(true)
