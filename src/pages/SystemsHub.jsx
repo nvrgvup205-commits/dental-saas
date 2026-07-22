@@ -1,5 +1,3 @@
-import { Link } from 'react-router-dom'
-
 const portals = [
   {
     key: 'restaurants',
@@ -7,8 +5,6 @@ const portals = [
     title: 'المطاعم',
     desc: 'تشغيل المطاعم والكافيهات من لوحة واحدة.',
     href: '/restaurants',
-    // Must be a real <a> so the browser hits the Worker (not React clinic routes)
-    external: true,
     accent: '#e3a35a',
   },
   {
@@ -17,7 +13,6 @@ const portals = [
     title: 'العيادات',
     desc: 'إدارة عيادات الأسنان والمواعيد والملفات الطبية.',
     href: '/dental',
-    external: false,
     accent: '#4db7e8',
   },
   {
@@ -26,7 +21,6 @@ const portals = [
     title: 'النوادي الرياضية',
     desc: 'اشتراكات الأعضاء والجداول والتشغيل اليومي للنادي.',
     href: 'https://gym-saas.nvrgvup205.workers.dev/',
-    external: true,
     accent: '#4ade80',
   },
   {
@@ -35,7 +29,6 @@ const portals = [
     title: 'الأبحاث الميدانية',
     desc: 'نظام الباحث الميداني وتجميع التقارير.',
     href: 'https://data-collections.nvrgvup205.workers.dev/',
-    external: true,
     accent: '#c4b5fd',
   },
 ]
@@ -46,6 +39,28 @@ function ArrowIcon() {
       <path d="M19 12H5M12 19l-7-7 7-7" />
     </svg>
   )
+}
+
+function openPortalPopup(href, name) {
+  const width = Math.min(1280, Math.max(980, window.screen.availWidth - 80))
+  const height = Math.min(900, Math.max(720, window.screen.availHeight - 100))
+  const left = Math.max(0, Math.round((window.screen.availWidth - width) / 2))
+  const top = Math.max(0, Math.round((window.screen.availHeight - height) / 2))
+  const features = [
+    `popup=yes`,
+    `width=${width}`,
+    `height=${height}`,
+    `left=${left}`,
+    `top=${top}`,
+    'noopener',
+    'noreferrer',
+    'resizable=yes',
+    'scrollbars=yes',
+  ].join(',')
+
+  const popup = window.open(href, `st-portal-${name}`, features)
+  if (popup) popup.focus()
+  else window.location.assign(href)
 }
 
 export default function SystemsHub() {
@@ -71,37 +86,28 @@ export default function SystemsHub() {
         </header>
 
         <section className="grid grid-cols-1 md:grid-cols-2 gap-4 hub-rise-delay" aria-label="بوابات الأنظمة">
-          {portals.map((p) => {
-            const className = 'portal-card group/portal relative flex flex-col justify-end min-h-[168px] p-[1.35rem_1.4rem_1.25rem] no-underline text-[#f4efe4] rounded-[1.35rem] overflow-hidden transition-all duration-300 hover:-translate-y-1 focus-visible:-translate-y-1 focus-visible:outline-none'
-            const style = { '--accent': p.accent }
-            const body = (
-              <>
-                <div className="relative text-[0.8rem] tracking-[0.08em] font-bold mb-1.5" style={{ color: `color-mix(in srgb, ${p.accent} 80%, white)` }}>
-                  {p.kicker}
-                </div>
-                <h2 className="relative font-[Cairo,sans-serif] text-[clamp(1.35rem,3vw,1.7rem)] font-extrabold mb-1.5">{p.title}</h2>
-                <span className="relative text-[#f4efe4b8] text-[0.95rem] leading-relaxed">{p.desc}</span>
-                <div className="relative mt-4 inline-flex items-center gap-1.5 font-bold text-[0.92rem] text-[#f0d18a]">
-                  دخول البوابة
-                  <ArrowIcon />
-                </div>
-              </>
-            )
-
-            if (p.external) {
-              return (
-                <a key={p.key} href={p.href} className={className} style={style}>
-                  {body}
-                </a>
-              )
-            }
-
-            return (
-              <Link key={p.key} to={p.href} className={className} style={style}>
-                {body}
-              </Link>
-            )
-          })}
+          {portals.map((p) => (
+            <a
+              key={p.key}
+              href={p.href}
+              className="portal-card group/portal relative flex flex-col justify-end min-h-[168px] p-[1.35rem_1.4rem_1.25rem] no-underline text-[#f4efe4] rounded-[1.35rem] overflow-hidden transition-all duration-300 hover:-translate-y-1 focus-visible:-translate-y-1 focus-visible:outline-none cursor-pointer"
+              style={{ '--accent': p.accent }}
+              onClick={(e) => {
+                e.preventDefault()
+                openPortalPopup(p.href, p.key)
+              }}
+            >
+              <div className="relative text-[0.8rem] tracking-[0.08em] font-bold mb-1.5" style={{ color: `color-mix(in srgb, ${p.accent} 80%, white)` }}>
+                {p.kicker}
+              </div>
+              <h2 className="relative font-[Cairo,sans-serif] text-[clamp(1.35rem,3vw,1.7rem)] font-extrabold mb-1.5">{p.title}</h2>
+              <span className="relative text-[#f4efe4b8] text-[0.95rem] leading-relaxed">{p.desc}</span>
+              <div className="relative mt-4 inline-flex items-center gap-1.5 font-bold text-[0.92rem] text-[#f0d18a]">
+                دخول البوابة
+                <ArrowIcon />
+              </div>
+            </a>
+          ))}
         </section>
 
         <p className="text-center text-[0.85rem] text-[#f4efe473] hub-rise-late">
