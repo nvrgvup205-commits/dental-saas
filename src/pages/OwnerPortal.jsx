@@ -51,10 +51,11 @@ function OwnerLogin({ onSuccess }) {
   const handleLogin = async (e) => {
     e.preventDefault(); setError(''); setLoading(true)
     try {
-      const { data } = await supabase.from('admin_users').select('*')
+      const { data, error: queryError } = await supabase.from('admin_users').select('*')
         .eq('username', credentials.username.trim()).eq('password', credentials.password)
         .eq('role', 'owner').limit(1)
-      if (data?.length > 0) onSuccess(data[0])
+      if (queryError) setError('❌ ' + queryError.message)
+      else if (data?.length > 0) onSuccess(data[0])
       else setError('❌ بيانات الدخول غير صحيحة')
     } catch (err) { setError('❌ حصل خطأ') }
     finally { setLoading(false) }
@@ -369,22 +370,52 @@ function ClinicForm({ clinic, onSuccess, onCancel }) {
   const submit = async (e) => {
     e.preventDefault(); setError(''); setLoading(true)
     try {
-      if (isEditing) {
-        const { error: err } = await supabase.from('clinics').update(form).eq('id', clinic.id)
+      const saveClinic = async (payload) => {
+        if (isEditing) {
+          const { error: err } = await supabase.from('clinics').update(payload).eq('id', clinic.id)
+          if (err) throw err
+          return null
+        }
+        const { data: newClinic, error: err } = await supabase.from('clinics').insert([payload]).select().single()
         if (err) throw err
+        return newClinic
+      }
+
+      let newClinic
+      try {
+        newClinic = await saveClinic(form)
+      } catch (err) {
+        // Shared gyms DB may lack clinics.about until dental_compat.sql is applied
+        if (err?.message?.includes('about')) {
+          const { about, ...withoutAbout } = form
+          newClinic = await saveClinic(withoutAbout)
+        } else {
+          throw err
+        }
+      }
+
+      if (isEditing) {
         onSuccess()
       } else {
-        const { data: newClinic, error: err } = await supabase.from('clinics').insert([form]).select().single()
-        if (err) throw err
+        if (!newClinic) throw new Error('فشل إنشاء العيادة')
 
-        await supabase.from('admin_users').insert([{
+        const adminRow = {
           clinic_id: newClinic.id, username: 'admin', password: 'admin123',
           full_name: 'مدير العيادة', role: 'clinic_admin'
-        }])
-        await supabase.from('doctors').insert([{
+        }
+        let { error: adminErr } = await supabase.from('admin_users').insert([adminRow])
+        // Older shared DBs may lack full_name until dental_compat.sql is applied
+        if (adminErr?.message?.includes('full_name')) {
+          delete adminRow.full_name
+          ;({ error: adminErr } = await supabase.from('admin_users').insert([adminRow]))
+        }
+        if (adminErr) throw adminErr
+
+        const { error: doctorErr } = await supabase.from('doctors').insert([{
           clinic_id: newClinic.id, name: 'د. مثال', specialization: 'عام',
           username: 'doctor', password: '123456'
         }])
+        if (doctorErr) throw doctorErr
 
         onSuccess()
         alert(`✓ تم إنشاء العيادة!\n\n🔗 ${window.location.origin}/${newClinic.slug}\n\n🔐 admin / admin123\n🔐 doctor / 123456`)
