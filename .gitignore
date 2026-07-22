@@ -7,3 +7,4 @@ dist-ssr
 *.log
 .vscode
 .idea
+hub/node_modules
