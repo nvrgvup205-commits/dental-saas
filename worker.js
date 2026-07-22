@@ -1,5 +1,4 @@
 const RESTAURANT_ORIGIN = 'https://sulalah-menu.nvrgvup205.workers.dev'
-const SIGNUP_PATH = '/signup'
 
 const NO_BLUR_STYLE = `
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -36,69 +35,98 @@ const NO_BLUR_STYLE = `
 </style>
 `
 
-function absolutize(url) {
-  if (!url) return url
-  if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://') || url.startsWith('//') || url.startsWith('mailto:') || url.startsWith('tel:') || url.startsWith('#')) {
-    return url
-  }
-  if (url.startsWith('/')) return RESTAURANT_ORIGIN + url
-  return RESTAURANT_ORIGIN + '/' + url
+const FORWARD_REQ_HEADERS = [
+  'accept',
+  'accept-language',
+  'accept-encoding',
+  'content-type',
+  'rsc',
+  'next-router-state-tree',
+  'next-router-prefetch',
+  'next-router-segment-prefetch',
+  'next-url',
+  'priority',
+]
+
+function shouldProxyRestaurants(pathname) {
+  return (
+    pathname === '/signup' ||
+    pathname === '/signup/' ||
+    pathname.startsWith('/signup/') ||
+    pathname.startsWith('/_next/')
+  )
 }
 
-function rewriteAttr(el, attr) {
-  const value = el.getAttribute(attr)
-  if (!value) return
-  el.setAttribute(attr, absolutize(value))
+function buildUpstreamHeaders(request) {
+  const headers = new Headers()
+  for (const name of FORWARD_REQ_HEADERS) {
+    const value = request.headers.get(name)
+    if (value) headers.set(name, value)
+  }
+  headers.set('user-agent', request.headers.get('user-agent') || 'sauditrend-hub')
+  return headers
+}
+
+function buildResponseHeaders(upstream) {
+  const headers = new Headers(upstream.headers)
+  headers.delete('content-security-policy')
+  headers.delete('content-security-policy-report-only')
+  headers.delete('content-encoding')
+  headers.delete('content-length')
+  headers.set('cache-control', upstream.headers.get('cache-control') || 'public, max-age=60')
+  return headers
+}
+
+async function proxyRestaurants(request, url) {
+  const upstreamUrl = RESTAURANT_ORIGIN + url.pathname + url.search
+  const init = {
+    method: request.method,
+    headers: buildUpstreamHeaders(request),
+    redirect: 'follow',
+  }
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    init.body = request.body
+  }
+
+  const upstream = await fetch(upstreamUrl, init)
+  const headers = buildResponseHeaders(upstream)
+  const contentType = upstream.headers.get('content-type') || ''
+
+  // Keep relative /_next + /signup asset URLs so the browser stays same-origin.
+  // Inject hub font/anti-blur only into HTML documents.
+  if (contentType.includes('text/html')) {
+    const rewriter = new HTMLRewriter().on('head', {
+      element(el) {
+        el.append(NO_BLUR_STYLE, { html: true })
+      },
+    })
+    return rewriter.transform(new Response(upstream.body, {
+      status: upstream.status,
+      headers,
+    }))
+  }
+
+  return new Response(upstream.body, {
+    status: upstream.status,
+    headers,
+  })
 }
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
 
+    // Hub entry stays /restaurants, but Next.js must run under /signup.
     if (url.pathname === '/restaurants' || url.pathname === '/restaurants/') {
-      const upstream = await fetch(RESTAURANT_ORIGIN + SIGNUP_PATH, {
-        headers: {
-          Accept: request.headers.get('Accept') || 'text/html',
-          'Accept-Language': request.headers.get('Accept-Language') || 'ar',
-          'User-Agent': request.headers.get('User-Agent') || 'sauditrend-hub',
-        },
-      })
-
-      const rewriter = new HTMLRewriter()
-        .on('head', {
-          element(el) {
-            el.append(NO_BLUR_STYLE, { html: true })
-          },
-        })
-        .on('img[src]', { element(el) { rewriteAttr(el, 'src') } })
-        .on('script[src]', { element(el) { rewriteAttr(el, 'src') } })
-        .on('link[href]', { element(el) { rewriteAttr(el, 'href') } })
-        .on('a[href]', {
-          element(el) {
-            const href = el.getAttribute('href')
-            if (!href) return
-            if (href.startsWith('/') && !href.startsWith('//')) {
-              el.setAttribute('href', RESTAURANT_ORIGIN + href)
-            }
-          },
-        })
-        .on('form[action]', { element(el) { rewriteAttr(el, 'action') } })
-        .on('source[src]', { element(el) { rewriteAttr(el, 'src') } })
-        .on('video[src]', { element(el) { rewriteAttr(el, 'src') } })
-        .on('use[href]', { element(el) { rewriteAttr(el, 'href') } })
-
-      const headers = new Headers(upstream.headers)
-      headers.delete('content-security-policy')
-      headers.delete('content-security-policy-report-only')
-      headers.set('cache-control', 'public, max-age=60')
-
-      return rewriter.transform(new Response(upstream.body, {
-        status: upstream.status,
-        headers,
-      }))
+      const target = new URL('/signup', url.origin)
+      target.search = url.search
+      return Response.redirect(target, 302)
     }
 
-    // Default: static SPA assets
+    if (shouldProxyRestaurants(url.pathname)) {
+      return proxyRestaurants(request, url)
+    }
+
     if (env.ASSETS) return env.ASSETS.fetch(request)
     return new Response('Not found', { status: 404 })
   },
