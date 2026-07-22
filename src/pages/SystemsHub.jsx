@@ -41,28 +41,6 @@ function ArrowIcon() {
   )
 }
 
-function openPortalPopup(href, name) {
-  const width = Math.min(1280, Math.max(980, window.screen.availWidth - 80))
-  const height = Math.min(900, Math.max(720, window.screen.availHeight - 100))
-  const left = Math.max(0, Math.round((window.screen.availWidth - width) / 2))
-  const top = Math.max(0, Math.round((window.screen.availHeight - height) / 2))
-  const features = [
-    `popup=yes`,
-    `width=${width}`,
-    `height=${height}`,
-    `left=${left}`,
-    `top=${top}`,
-    'noopener',
-    'noreferrer',
-    'resizable=yes',
-    'scrollbars=yes',
-  ].join(',')
-
-  const popup = window.open(href, `st-portal-${name}`, features)
-  if (popup) popup.focus()
-  else window.location.assign(href)
-}
-
 export default function SystemsHub() {
   return (
     <div className="hub-root min-h-dvh relative overflow-hidden" dir="rtl">
@@ -90,12 +68,10 @@ export default function SystemsHub() {
             <a
               key={p.key}
               href={p.href}
-              className="portal-card group/portal relative flex flex-col justify-end min-h-[168px] p-[1.35rem_1.4rem_1.25rem] no-underline text-[#f4efe4] rounded-[1.35rem] overflow-hidden transition-all duration-300 hover:-translate-y-1 focus-visible:-translate-y-1 focus-visible:outline-none cursor-pointer"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="portal-card group/portal relative flex flex-col justify-end min-h-[168px] p-[1.35rem_1.4rem_1.25rem] no-underline text-[#f4efe4] rounded-[1.35rem] overflow-hidden transition-all duration-300 hover:-translate-y-1 focus-visible:-translate-y-1 focus-visible:outline-none"
               style={{ '--accent': p.accent }}
-              onClick={(e) => {
-                e.preventDefault()
-                openPortalPopup(p.href, p.key)
-              }}
             >
               <div className="relative text-[0.8rem] tracking-[0.08em] font-bold mb-1.5" style={{ color: `color-mix(in srgb, ${p.accent} 80%, white)` }}>
                 {p.kicker}
