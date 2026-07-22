@@ -10,6 +10,7 @@ export const RESERVED_SLUGS = new Set([
   'platform',
   'signup',
   'assets',
+  'clinic-signup',
 ])
 
 export function isReservedSlug(slug) {
