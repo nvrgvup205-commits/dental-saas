@@ -15,6 +15,16 @@ export default function HomePage() {
         <div className="floating-shape w-[400px] h-[400px] bg-emerald-400/15 top-1/2 left-1/2" style={{animationDelay: '4s'}}></div>
       </div>
 
+      {/* رجوع لبوابة سعودي ترند */}
+      <Link
+        to="/"
+        className="fixed top-6 right-6 z-50 px-4 py-2 bg-white/80 hover:bg-sky-100 backdrop-blur-xl rounded-full border-2 border-sky-200 hover:border-sky-400 flex items-center gap-2 transition-all duration-300 hover:scale-105 shadow-lg text-sky-700 font-bold text-sm"
+        title="بوابة سعودي ترند"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        البوابة
+      </Link>
+
       {/* زر المالك (تاج صغير) */}
       <Link
         to="/owner"
