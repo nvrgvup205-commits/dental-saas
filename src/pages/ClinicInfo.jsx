@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, Navigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { isReservedSlug } from '../lib/reservedSlugs'
 import {
   MapPin, Phone, Mail, Clock, Stethoscope, Sparkles,
   ArrowLeft, Home, Calendar, Award, Heart, MessageCircle,
@@ -14,7 +15,14 @@ export default function ClinicInfo() {
   const [services, setServices] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { load() }, [clinicSlug])
+  useEffect(() => {
+    if (isReservedSlug(clinicSlug)) return
+    load()
+  }, [clinicSlug])
+
+  if (isReservedSlug(clinicSlug)) {
+    return <Navigate to={String(clinicSlug).toLowerCase() === 'restaurants' ? '/restaurants' : '/'} replace />
+  }
 
   const load = async () => {
     const { data: c } = await supabase.from('clinics').select('*')

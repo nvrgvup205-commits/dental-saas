@@ -2,7 +2,13 @@ const RESTAURANT_ORIGIN = 'https://sulalah-menu.nvrgvup205.workers.dev'
 const SIGNUP_PATH = '/signup'
 
 const NO_BLUR_STYLE = `
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet" />
 <style id="st-no-text-blur">
+  html, body, .signup-landing, .signup-landing * {
+    font-family: "Tajawal", "Cairo", "IBM Plex Sans Arabic", sans-serif !important;
+  }
   .signup-word,
   .signup-word--soft-rise,
   .signup-word--fall,

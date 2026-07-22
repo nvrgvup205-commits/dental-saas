@@ -7,7 +7,8 @@ const portals = [
     title: 'المطاعم',
     desc: 'تشغيل المطاعم والكافيهات من لوحة واحدة.',
     href: '/restaurants',
-    external: false,
+    // Must be a real <a> so the browser hits the Worker (not React clinic routes)
+    external: true,
     accent: '#e3a35a',
   },
   {
