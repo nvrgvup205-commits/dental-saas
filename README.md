@@ -10,6 +10,21 @@
 - 🔔 **إشعارات داخل النظام** - عند الحجز/التأكيد/الإلغاء
 - 💎 **Glassmorphism + Animations** ساحرة
 
+## 🗄️ قاعدة البيانات (مشتركة مع نظام الجيمات)
+
+المشروع متصل بـ Supabase:
+`https://khzrapojrkhxjsjgnflr.supabase.co`
+
+جداول العيادات موجودة جنب جداول الجيم **بدون تعديل جداول الجيم**.
+
+لتفعيل أعمدة/جداول العيادات الناقصة (مرة واحدة فقط):
+
+1. افتح [Supabase SQL Editor](https://supabase.com/dashboard/project/khzrapojrkhxjsjgnflr/sql)
+2. الصق محتوى الملف `supabase/dental_compat.sql`
+3. اضغط **Run**
+
+الملف آمن: يستخدم `IF NOT EXISTS` فقط ولا يلمس جداول الجيم.
+
 ## 🚀 التشغيل
 
 ```bash
@@ -17,16 +32,12 @@ npm install
 npm run dev
 ```
 
-## 📦 Build
+## 📦 Build / Deploy
 
 ```bash
 npm run build
-npm run start
+npm run deploy
 ```
-
-## 🚂 النشر على Railway
-
-المشروع جاهز للنشر مباشرة على Railway.
 
 ## 🔑 بيانات الدخول
 
@@ -36,3 +47,5 @@ npm run start
 | ⚙️ الأدمن | `admin` | `admin123` |
 | 👨‍⚕️ الدكتور | `doctor` | `123456` |
 | 👤 المريض | `0501234567` | `123456` |
+
+عيادة تجريبية جاهزة: `/smile-clinic`

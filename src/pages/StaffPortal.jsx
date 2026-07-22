@@ -1112,7 +1112,12 @@ function ClinicSettingsTab({ clinic, setClinic }) {
 
   const save = async (e) => {
     e.preventDefault(); setLoading(true)
-    const { data, error } = await supabase.from('clinics').update(form).eq('id', clinic.id).select().single()
+    let { data, error } = await supabase.from('clinics').update(form).eq('id', clinic.id).select().single()
+    // Shared gyms DB may lack clinics.about until dental_compat.sql is applied
+    if (error?.message?.includes('about')) {
+      const { about, ...withoutAbout } = form
+      ;({ data, error } = await supabase.from('clinics').update(withoutAbout).eq('id', clinic.id).select().single())
+    }
     setLoading(false)
     if (!error) {
       setClinic(data)

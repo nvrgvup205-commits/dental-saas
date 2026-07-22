@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = 'https://cfbxoqkxibhztovhyxqn.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmYnhvcWt4aWJoenRvdmh5eHFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxMDM5NjAsImV4cCI6MjA5MzY3OTk2MH0.bi7fLHfJ01nqThYIAUyUY-F4vLiLZ8R3TvCqrRcJNNU'
+// Shared project with the gyms system (dental tables coexist; do not alter gym_* tables)
+const supabaseUrl = 'https://khzrapojrkhxjsjgnflr.supabase.co'
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtoenJhcG9qcmtoeGpzamduZmxyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NDYzNjEsImV4cCI6MjA5NTIyMjM2MX0.tTVOQYRhH5XfcmGWK2b3YWliEMPQmgYcEQZErje2PIM'
 
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   realtime: {
