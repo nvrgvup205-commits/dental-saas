@@ -14,9 +14,11 @@ function App() {
       <Route path="/" element={<SystemsHub />} />
       <Route path="/dental" element={<HomePage />} />
       <Route path="/owner" element={<OwnerPortal />} />
-      {/* Full page load so Worker proxies the restaurants signup landing */}
+      {/* Full page load so Worker can redirect/proxy the restaurants signup landing */}
       <Route path="/restaurants" element={<HardNavigate to="/restaurants" />} />
       <Route path="/restaurants/" element={<HardNavigate to="/restaurants" />} />
+      <Route path="/signup" element={<HardNavigate to="/signup" />} />
+      <Route path="/signup/" element={<HardNavigate to="/signup" />} />
       <Route path="/:clinicSlug/about" element={<ClinicInfo />} />
       <Route path="/:clinicSlug/staff" element={<StaffPortal />} />
       <Route path="/:clinicSlug" element={<PatientPortal />} />
