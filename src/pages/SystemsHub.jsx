@@ -6,8 +6,8 @@ const portals = [
     kicker: 'RESTAURANTS',
     title: 'المطاعم',
     desc: 'تشغيل المطاعم والكافيهات من لوحة واحدة.',
-    href: 'https://sulalah-menu.nvrgvup205.workers.dev/platform',
-    external: true,
+    href: '/restaurants',
+    external: false,
     accent: '#e3a35a',
   },
   {
